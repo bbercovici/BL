@@ -1,1 +1,1 @@
-This repository stores the implementation of Bayesian Learning/Project 2 Place Recognization (Mar Cols & Benjamin Bercovici)
+This repository stores the implementation of the Place Recognition project (Mar Cols & Benjamin Bercovici)
