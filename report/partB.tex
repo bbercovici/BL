@@ -1,0 +1,34 @@
+\section{Maximum Likelihood LGM Model Learning}
+For compactness, the full set of parameters is denoted
+\begin{equation}
+\Theta =\{\theta^s,\theta^{y,\nu}, \theta^{y,\Sigma}, \theta^{x,\mu}, \theta^{x,\Psi}, \theta^{x,\Lambda}\}\ \mathrm{with}\ s = 1\ ..\ M
+\end{equation}
+\subsection{}
+The complete joint  distribution of the Bayesian Network associated with the plate model reads
+\begin{align}
+p(s_{1:\bar{N}_R},x_{1:\bar{N}_R},y_{1:\bar{N}_R},\Theta) &= \prod\limits_{i = 1}^{\bar{N}_R}p(s_i = s\vert\theta^s)
+p(y_i\vert s_i = s, \theta^{y,\nu}, \theta^{y,\Sigma})p(x_i\vert s_i = s,y_i, \theta^{x,\mu}, \theta^{x,\Psi}, \theta^{x,\Lambda})
+\nonumber \\ &=  \prod\limits_{i = 1}^{\bar{N}_R}w_{s_i}\cdot
+\mathcal{N}_y\left(\nu_s,\Sigma_s\right)\cdot\mathcal{N}_x\left(\Lambda_sy_i + \mu_s,\Psi_s\right)
+\end{align}
+
+By consequent, the Complete Likelihood is
+\begin{align}
+l_C(\Theta)& = \ln\left(p(s_{1:\bar{N}_R},x_{1:\bar{N}_R},y_{1:\bar{N}_R},\Theta)\right)\nonumber\\
+&= \sum\limits_{i = 1}^{\bar{N}_R}\left(\ln(\omega_{s_i}) + \ln\left(\mathcal{N}_y\left(\nu_s,\Sigma_s\right)\right)+ \ln\left(\mathcal{N}_x\left(\Lambda_sy_i + \mu_s,\Psi_s\right)\right)\right) 
+\end{align}
+
+But since one does not have access to the index of the mixand responsible for the instanciation of $(x_i,y_i)$, $s_i$ is actually unobservable. The resulting Incomplete Likelihood is given by
+
+\begin{align}
+l_I(\Theta)& = \ln\left(p(x_{1:\bar{N}_R},y_{1:\bar{N}_R},\Theta)\right)\nonumber\\
+&=  \ln\left(\prod\limits_{i = 1}^{\bar{N}_R}p(x_i,y_i,\Theta)\right)\nonumber\\
+&= \ln\left(\prod\limits_{i = 1}^{\bar{N}_R}\sum\limits_{m = 1}^{M}p(s_i = m,x_i,y_i,\Theta)\right)\nonumber\\
+&= \ln\left(\prod\limits_{i = 1}^{\bar{N}_R}\sum\limits_{m = 1}^{M}\omega_m\cdot
+\mathcal{N}_y\left(\nu_m,\Sigma_m\right)\cdot\mathcal{N}_x\left(\Lambda_my_i + \mu_m,\Psi_m\right)\right)
+\end{align}
+
+Maximum Likelihood pertains to finding the absolute maximum of $l_I$ with respect to the set of parameters $\Theta$. The following presents the analytical derivations ensuring convergence to a local maximum of $l_I$. This procedures is denoted as the Expectation Maximization Algorithm (EM).
+\subsection{}
+The EM is an iterative algorithm hopefully converging to a global maximum of the likelihood function. It proceeds by successively refining an initial guess of the parameter set $\Theta$. 
+
