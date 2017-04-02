@@ -78,17 +78,16 @@ The two parameters related to $y$ are $\nu_m$ and $\Sigma_m$.
 \end{align}
 Since
 \begin{equation}
-\frac{\partial }{\partial \nu_m}\left(\mathcal{N}_y\left(y_i\vert\nu_m,\Sigma_m\right)\right) = -\left(y_i - \nu_m\right)^T\Sigma_m^{-1}\mathcal{N}_y\left(y_i\vert\nu_m,\Sigma_m\right)
+\frac{\partial }{\partial \nu_m}\left(\mathcal{N}_y\left(y_i\vert\nu_m,\Sigma_m\right)\right) = \left(y_i - \nu_m\right)^T\Sigma_m^{-1}\mathcal{N}_y\left(y_i\vert\nu_m,\Sigma_m\right)
 \end{equation}
 We get
 \begin{align}
-\frac{\partial l(\Theta)   }{\partial  \nu_m } & = - \sum\limits_{i = 1}^{\bar{N}_R}
+\frac{\partial l(\Theta)   }{\partial  \nu_m } & = \sum\limits_{i = 1}^{\bar{N}_R}
 \frac{\left(y_i - \nu_m\right)^T\Sigma_m^{-1}
 \omega_m \mathcal{N}_y\left(y_i\vert\nu_m,\Sigma_m\right)\cdot\mathcal{N}_x\left(x_i\vert\Lambda_my_i + \mu_m,\Psi_m\right)}{\sum\limits_{k = 1}^{M}\omega_k\cdot
 \mathcal{N}_y\left(y_i\vert\nu_k,\Sigma_k\right)\cdot\mathcal{N}_x\left(x_i\vert\Lambda_ky_i + \mu_k,\Psi_k\right) }\\
-&=- \sum\limits_{i = 1}^{\bar{N}_R}
-\left(y_i - \nu_m\right)^T\Sigma_m^{-1}\gamma\left(Z_{im}\right)\\
-&=\nu_m^T\Sigma_m^{-1}\sum\limits_{i = 1}^{\bar{N}_R}\gamma\left(Z_{im}\right) - \sum\limits_{i = 1}^{\bar{N}_R}y_i^T\Sigma_m^{-1}\gamma\left(Z_{im}\right)
+&= \sum\limits_{i = 1}^{\bar{N}_R}
+\left(y_i - \nu_m\right)^T\Sigma_m^{-1}\gamma\left(Z_{im}\right)
 \end{align}
 Setting the partial derivative to zero and using the fact that $\Sigma_m$ is non singular, we finally get
 \begin{equation}
@@ -107,7 +106,7 @@ and using the fact that
 \end{equation}
 Admitting that
 \begin{equation}
-\frac{\partial }{A}\left(x^TAx\right) = - A^{-T}xx^TA^{-T}
+\frac{\partial }{A}\left(x^TA^{-1}x\right) = - A^{-T}xx^TA^{-T}
 \end{equation}
 we get
 \begin{align}
@@ -124,7 +123,7 @@ Since
 \end{equation}
 We get
 \begin{align}
-\frac{\partial l(\Theta)}{\partial \Sigma_m} &=   \sum\limits_{i = 1}^{\bar{N}_R}\gamma\left(Z_{im}\right)(-\Sigma_m^{-T}\nonumber\\
+\frac{\partial l(\Theta)}{\partial \Sigma_m} &=  \frac{1}{2} \sum\limits_{i = 1}^{\bar{N}_R}\gamma\left(Z_{im}\right)(-\Sigma_m^{-T}\nonumber\\
 &+ 
 \Sigma_m^{-T}\left(y_i - \nu_m\right)\left(y_i - \nu_m\right)^T\Sigma_m^{-T} )
 \end{align}
@@ -159,6 +158,42 @@ Setting the corresponding partial derivative of the ICLL to zero finally yields
 \Lambda_m =\left(
 \sum\limits_{i = 1}^{\bar{N}_R}\gamma(Z_{im})\left[x_i - \mu_m\right]y_i^T\right) \left( \sum\limits_{i = 1}^{\bar{N}_R}\gamma(Z_{im})y_iy_i^T\right)^{-1}
 }
+\end{equation}
+
+Continuing with $\mu_m$, 
+\begin{equation}
+\frac{\partial\mathcal{N}_x\left(x_i\vert\Lambda_my_i + \mu_m,\Psi_m\right)}{\partial \mu_m} = \left(x_i - \Lambda_my_i - \mu_m\right)\Psi^{-1}\mathcal{N}_x\left(x_i\vert\Lambda_my_i + \mu_m,\Psi_m\right)
+\end{equation}
+So
+\begin{align}
+\frac{\partial l(\Theta)}{\partial \mu_m} &= \sum\limits_{i = 1}^{\bar{N}_R}
+\frac{\omega_m\cdot
+\mathcal{N}_y\left(y_i\vert\nu_m,\Sigma_m\right)\frac{\partial }{\partial \mu_m}\left(\mathcal{N}_x\left(x_i\vert\Lambda_my_i + \mu_m,\Psi_m\right)\right)}{\sum\limits_{k = 1}^{M}\omega_k\cdot
+\mathcal{N}_y\left(y_i\vert\nu_k,\Sigma_k\right)\cdot\mathcal{N}_x\left(x_i\vert\Lambda_ky_i + \mu_k,\Psi_k\right) }\\
+&= \sum\limits_{i = 1}^{\bar{N}_r}\gamma(Z_{im})\left(x_i - \Lambda_my_i - \mu_m\right)\Psi^{-1}
+\end{align}
+Setting this partial to zero and leveraging the positive definiteness of $\Psi$ thus gives
+\begin{equation}
+\boxed{\mu_m = \frac{\sum\limits_{i = 1}^{\bar{N}_r}\gamma(Z_{im})\left(x_i - \Lambda_my_i\right)}{\sum\limits_{i = 1}^{\bar{N}_r}\gamma(Z_{im})} }
+\end{equation}
+
+Finally, since
+\begin{align}
+\frac{\partial\mathcal{N}_x\left(x_i\vert\Lambda_ky_i + \mu_k,\Psi_k\right)}{\partial \Psi_m} &= -\frac{1}{2}\Psi_m^{-T}\mathcal{N}_x\left(x_i\vert\Lambda_ky_i + \mu_k,\Psi_k\right) \nonumber\\
+&+ \frac{1}{2}
+\Psi_m^{-T}\left(x_i -\Lambda_my_i - \mu_m\right)\left(x_i -\Lambda_my_i - \mu_m\right)^T\Psi_m^{-T}\mathcal{N}_x\left(x_i\vert\Lambda_ky_i + \mu_k,\Psi_k\right)
+\end{align}
+
+We can set the partial derivative of the ICLL with respect to $\Psi$ to zero to get
+\begin{equation}
+\boxed{
+\Psi_m = \frac{  \sum\limits_{i = 1}^{\bar{N}_R} \gamma(Z_{im})\left(x_i -\Lambda_my_i - \mu_m\right)\left(x_i -\Lambda_my_i - \mu_m\right)^T }{  \sum\limits_{i = 1}^{\bar{N}_R}\gamma(Z_{im})}}
+\end{equation}
+
+And the mixture weights are still given by
+\begin{equation}
+\boxed{
+\omega_m = \frac{\sum\limits_{i = 1}^{\bar{N}_R}\gamma(Z_{im})}{\bar{N}_R}}
 \end{equation}
 
 
