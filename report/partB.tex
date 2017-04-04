@@ -50,7 +50,10 @@ From the joint distribution, this becomes
 \begin{align}
  \gamma(Z_{im})& = \frac{p(s_i = m, x_i, y_i, \Theta)}{\sum\limits_{m = 1}^{M}p(s_i = m, x_i, y_i, \Theta)}\\
  &=  \frac{w_{m}\cdot
-\mathcal{N}_y\left(y_i\vert\nu_m,\Sigma_m\right)\cdot\mathcal{N}_x\left(x_i\vert\Lambda_my_i + \mu_m,\Psi_m\right)}{\sum\limits_{m = 1}^{M}p(s_i = m, x_i, y_i, \Theta)}
+\mathcal{N}_y\left(y_i\vert\nu_m,\Sigma_m\right)\cdot\mathcal{N}_x\left(x_i\vert\Lambda_my_i + \mu_m,\Psi_m\right)}{\sum\limits_{m = 1}^{M}p(s_i = m, x_i, y_i, \Theta)}\\
+&=  \frac{w_{m}\cdot
+\mathcal{N}_y\left(y_i\vert\nu_m,\Sigma_m\right)\cdot\mathcal{N}_x\left(x_i\vert\Lambda_my_i + \mu_m,\Psi_m\right)}{\sum\limits_{k = 1}^{M}\omega_k\cdot
+\mathcal{N}_y\left(y_i\vert\nu_k,\Sigma_k\right)\cdot\mathcal{N}_x\left(x_i\vert\Lambda_ky_i + \mu_k,\Psi_k\right) }
 \end{align}
 
 The responsibility acts as a weighing coefficient when updating the parameters of the different mixands. 
