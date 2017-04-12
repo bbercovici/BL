@@ -5,3 +5,7 @@
 *.gz
 *.toc
 *.DS_Store
+*.pyc
+*.mat
+*.png
+*.jpg

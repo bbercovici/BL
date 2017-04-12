@@ -118,8 +118,8 @@ def init(Xbar,Ybar,M):
 
         for i in range(0,N_R):
         	if mixand_index[i] == m:
-	        	Psi[m,:,:] += np.outer(Xbar[i,:] - Mu[m,:],
-	        		Xbar[i,:] - Mu[m,:])
+	        	Psi[m,:,:] += np.diag(np.diag(np.outer(Xbar[i,:] - Mu[m,:],
+	        		Xbar[i,:] - Mu[m,:])))
 
         Psi[m,:,:] = Psi[m,:,:] / count[m]
 
