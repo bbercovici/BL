@@ -1,5 +1,5 @@
 
-function generateHighDimImageFeaturesFun(path)
+function generateHighDimImageFeaturesFun(path,base_colormap)
     %generateHighDimImageFeatures.m
     %%Read instructions in project description.
     %%You will need to change entries where you see the '***' comments.
@@ -16,7 +16,7 @@ function generateHighDimImageFeaturesFun(path)
 
     %% Step 0. Set base color map for ALL images to do Gabor conv
     [map,imheight,imwidth,imnumchannels] = ...
-        setFlatGaborImColorMapDims('../../data/locations/ORCCA/orcca_0.png'); %% *** set the default base image 
+        setFlatGaborImColorMapDims(base_colormap); %% *** set the default base image 
 
     %% Step 1. Generate/store sample training data for each image in this directory
     %%%---> Be sure to change the directory where this script is looking:

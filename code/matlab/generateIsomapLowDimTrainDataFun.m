@@ -4,7 +4,7 @@ function generateIsomapLowDimTrainDataFun(directories)
     %% 0. Specify a data structure containing all the raw x data you want to 
     %% explicitly project using Isomap (for your training set data and images only). 
 
-    Nsamps = 1500; %number of samples per image 
+    Nsamps = 375; %number of samples per image 
 
     %%create regular grid of patches to extract from each training image -- could replace with randomized?
     xind = floor(linspace(1,3072,Nsamps)); 
@@ -12,12 +12,15 @@ function generateIsomapLowDimTrainDataFun(directories)
     Xbar = [];
 
     % For all the directories in Locations/
+    
+    N = length(directories);
 
-    for folder_index = 1 :  length(directories)
-        
+    for folder_index = 1 : N
+      
          if(strcmp(directories(folder_index).name,'.') == 0 && ...
             strcmp(directories(folder_index).name,'..') == 0 &&  ...
-            strcmp(directories(folder_index).name,'.DS_Store') == 0)
+            strcmp(directories(folder_index).name,'.DS_Store') == 0 && ...
+        strcmp(directories(folder_index).name,'ORCCA') == 0)
 
                 Xall = load(char(strcat(directories(folder_index).folder,"/",directories(folder_index).name,"/Xall.mat")));
                 Xall = Xall.Xall;
@@ -33,9 +36,15 @@ function generateIsomapLowDimTrainDataFun(directories)
 
     end
 
-
     Xbar = Xbar'; %%flip for Isomap: row i is now 1x175 dim vector
-    size(Xbar)
+    
+    disp(size(Xbar));
+    
+    if ( max(size(Xbar)) < 150)
+        error('Error: Xbar too small. Add more images or increase Nsamps');
+    end
+    save ../../data/training/XbarData.mat -mat Xbar
+
     %% 1. Run Isomap
     %Compute the Euclidean distance matrix for all data in Xbar:
     %the ith row and jth column of Dbar is the Euclidean distance between
