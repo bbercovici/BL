@@ -2,7 +2,7 @@
 
 The starting point of the EM algorithm in the context of model learning relates to the use of Gaussian mixtures to reconstruct an intractable probability density distribution. If Gaussian sums are versatile enough to virtually match any other pdf, relating one outcome of the reconstructed pdf to the mixand it came from is one of the key challenges inherent to Gaussian mixtures. 
 
-In this project, Gaussian mixtures are utilized to relate a spatial location $L$ with higher and lower-level observations $X$ and $Y$ in a probabilistic manner.
+In this project, they are utilized to relate a spatial location $L$ with higher and lower-level observations $X$ and $Y$ in a probabilistic manner.
 
 The purpose of this phase is to develop the analytic expressions of the Maximum Likelihood Model Learning that will allow us to determine the optimal values of the model's parameters.
 
@@ -107,10 +107,12 @@ and using the fact that
 \begin{equation}
 \frac{\partial \ln\vert\Sigma\vert}{\partial \Sigma} = \Sigma^{-T}
 \end{equation}
-Admitting that
+and\footnote{This result can be proved by starting from the partial derivative of $I = AA^{-1}$ with respect to $A_{ij}$ to get $\frac{\partial A^{-1}}{\partial A_{ij}}$, back substitute it into $\frac{\partial }{\partial A_{ij}}\left(\mathbf{x}^TA^{-1}\mathbf{x}\right)$, and showing that this component is equal to $\left[- A^{-T}\mathbf{x}\mathbf{x}^TA^{-T}\right]_{ij}$} 
 \begin{equation}
-\frac{\partial }{A}\left(x^TA^{-1}x\right) = - A^{-T}xx^TA^{-T}
+\frac{\partial }{\partial A}\left(\mathbf{x}^TA^{-1}\mathbf{x}\right) = - A^{-T}\mathbf{x}\mathbf{x}^TA^{-T}
 \end{equation}
+
+
 we get
 \begin{align}
 \frac{\partial\mathcal{N}_y\left(y_i\vert\nu_m,\Sigma_m\right)}{\partial \Sigma_m} &= -\frac{1}{2}\Sigma_m^{-T}\mathcal{N}_y\left(y_i\vert\nu_m,\Sigma_m\right) \nonumber\\
@@ -144,8 +146,12 @@ The three parameters related to $x$ are $\Lambda_m$, $\mu_m$ and $\Psi_m$. Start
 \mathcal{N}_y\left(y_i\vert\nu_m,\Sigma_m\right)\frac{\partial }{\partial \Lambda_m}\left(\mathcal{N}_x\left(x_i\vert\Lambda_my_i + \mu_m,\Psi_m\right)\right)}{\sum\limits_{k = 1}^{M}\omega_k\cdot
 \mathcal{N}_y\left(y_i\vert\nu_k,\Sigma_k\right)\cdot\mathcal{N}_x\left(x_i\vert\Lambda_ky_i + \mu_k,\Psi_k\right) }
 \end{align}
-
-It can be shown that 
+From 
+\begin{equation}
+\frac{\partial }{\partial A}\left(\mathbf{y}^T A\mathbf{x}\right) = \mathbf{y}\mathbf{x}^T
+\end{equation}
+which can be easily proven by expressing the quadratic form in component form, 
+it can be shown that 
 
 \begin{equation}
 \frac{\partial }{\partial \Lambda_m}\left(\mathcal{N}_x\left(x_i\vert\Lambda_my_i + \mu_m,\Psi_m\right)\right) = - \frac{1}{2}\left(\Psi^{-1} + \Psi^{-T}\right)\left(-x_iy_i^T + \mu_my_i^T + \Lambda_my_iy_i^T\right)\mathcal{N}_x\left(x_i\vert\Lambda_my_i + \mu_m,\Psi_m\right)

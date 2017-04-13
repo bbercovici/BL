@@ -26,7 +26,7 @@ def init(Xbar,Ybar,M):
 
     N_R = len(Ybar)
 
-    Nu, mixand_index = kmeans2(Ybar,M,iter = 200)
+    Nu, mixand_index = kmeans2(Ybar,M,iter = 400)
 
     # Tally of owned points for each mixand
     count = np.zeros(M)
@@ -98,11 +98,11 @@ def init(Xbar,Ybar,M):
        
     Lambda = np.zeros([M,175,8])
 
-    for m in range(0,M):
+    # for m in range(0,M):
 
-        RHS = sum([np.outer(Ybar[i,:] , Ybar[i,:] ) for i in range(N_R) if mixand_index[i] == m])
-        LHS = sum([np.outer(Xbar[i,:] - Mu[m,:], Ybar[i,:] ) for i in range(N_R) if mixand_index[i] == m])
-        Lambda[m,:,:] = np.dot(LHS,np.linalg.inv(RHS))
+    #     RHS = sum([np.outer(Ybar[i,:] , Ybar[i,:] ) for i in range(N_R) if mixand_index[i] == m])
+    #     LHS = sum([np.outer(Xbar[i,:] - Mu[m,:], Ybar[i,:] ) for i in range(N_R) if mixand_index[i] == m])
+    #     Lambda[m,:,:] = np.dot(LHS,np.linalg.inv(RHS))
 
     ##################
     ###### Psi #######
@@ -117,9 +117,9 @@ def init(Xbar,Ybar,M):
         # Suppose that X and Y are uncorrelated at first
 
         for i in range(0,N_R):
-        	if mixand_index[i] == m:
-	        	Psi[m,:,:] += np.diag(np.diag(np.outer(Xbar[i,:] - Mu[m,:],
-	        		Xbar[i,:] - Mu[m,:])))
+            if mixand_index[i] == m:
+                Psi[m,:,:] += np.diag(np.diag(np.outer(Xbar[i,:] - Mu[m,:],
+                    Xbar[i,:] - Mu[m,:])))
 
         Psi[m,:,:] = Psi[m,:,:] / count[m]
 
@@ -154,8 +154,21 @@ def E_step(Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi):
     Gamma = np.zeros([N_R,M])
 
     for m in range(M):
-        for i in range(N_R):
-            Gamma[i,m] = gamma_Z_im(Xbar[i,:],Ybar[i,:],m,omega,Nu,Sigma,Lambda,Mu,Psi)
+        Gamma[:,m] = omega[m] * gaussian_pdf_vec(Ybar,Nu[m,:],Sigma[m,:,:]) * gaussian_pdf_vec(Xbar,(Lambda[m,:,:].dot(Ybar.T)).T + Mu[m,:],Psi[m,:,:])
+
+     # Nan terms are found and reset
+
+
+
+    Gamma = np.diag(1./np.sum(Gamma,axis = 1)).dot( Gamma )
+  	
+    nan_indices = np.array(range(len(Gamma)))[np.isnan(Gamma).sum(axis = 1) > 0]
+
+    print nan_indices
+    if len(nan_indices) > 0:
+	    Gamma[nan_indices,0] = 1
+	    Gamma[nan_indices,1:] = 0
+
     return Gamma
 
 
@@ -250,24 +263,24 @@ def gaussian_pdf(arg,mean,cov):
     - evaluated pdf
     '''
 
-    return 1. / np.sqrt(np.linalg.det(2 * np.pi * cov)) * np.exp(-0.5 * np.inner(arg - mean,np.linalg.inv(cov).dot(arg - mean)))
+    return 1. / np.sqrt(np.abs(np.linalg.det(2 * np.pi * cov))) * np.exp(- 0.5 * np.inner(arg - mean,np.linalg.inv(cov).dot(arg - mean)))
 
 def gaussian_pdf_vec(arg,mean,cov):
     '''
     Evaluates a multivariate gaussian pdf 
     Inputs:
     ------
-    - arg : arguments at which the pdf is evaluated (M-by-N)
-    - mean : mean of the pdf (M-by-1)
-    - cov : covariance of the pdf (M-by-M)
+    - arg : arguments at which the pdf is evaluated (N - by - N_R)
+    - mean : mean of the pdf (N - by - M)
+    - cov : covariance of the pdf (M - by - M)
     Outputs:
     -----
     - evaluated pdf
     '''
 
-    X = (arg.T - mean.T).T
-
-    return 1. / np.sqrt(np.linalg.det(2 * np.pi * cov)) * np.exp(-0.5 * np.diag(np.dot(X.T,np.linalg.inv(cov).dot(X))))
+    X = arg - mean
+   
+    return 1. / np.sqrt(np.linalg.det(2 * np.pi * cov)) * np.exp(-0.5 * np.diag(np.dot(X,np.linalg.inv(cov).dot(X.T))))
 
 
 def bic_score(X,Y,omega,Nu,Sigma,Lambda,Mu,Psi):
@@ -288,32 +301,7 @@ def bic_score(X,Y,omega,Nu,Sigma,Lambda,Mu,Psi):
     - evaluated BIC score
     '''
 
-    return len(omega) * np.log(len(Y)) - 2 * np.log(ICLL(X,Y,omega,Nu,Sigma,Lambda,Mu,Psi))
-
-def gamma_Z_im(x_i,y_i,m,omega,Nu,Sigma,Lambda,Mu,Psi):
-    '''
-    Computes the responsibility of the m-th mixand for
-    the i-th measurements
-    Inputs:
-    ------
-    - x_i : 175 x 1
-    - y_i : 175 x 1
-    - m : mixand index
-    - omega : {w_m} (M)
-    - Nu : {Nu_m} (M x 8)
-    - Sigma : {Sigma_m} (M x 8 x 8)
-    - Lambda : {Lambda_m} (M x 175 x 8)
-    - Mu : {mu_m} (M x 175)
-    - Psi : {Psi_m} (M x 175 x 175)
-    '''
-
-    gamma = omega[m] * gaussian_pdf(y_i,Nu[m,:],Sigma[m,:,:]) * gaussian_pdf(x_i,Lambda[m,:,:].dot(y_i) + Mu[m,:],Psi[m,:,:])
-
-    partial_sum = 0
-    for m in range(len(omega)):
-        partial_sum += omega[m] * gaussian_pdf(y_i,Nu[m,:],Sigma[m,:,:]) * gaussian_pdf(x_i,Lambda[m,:,:].dot(y_i) + Mu[m,:],Psi[m,:,:])
-
-    return gamma / partial_sum
+    return len(omega) * np.log(len(Y)) - 2 * ICLL(X,Y,omega,Nu,Sigma,Lambda,Mu,Psi)
 
 
 
@@ -336,15 +324,11 @@ def ICLL(X,Y,omega,Nu,Sigma,Lambda,Mu,Psi):
     - evaluated ICLL
     '''
 
-    icll = 0
-    for i in range(len(Y)):
+    icll_table = np.zeros([len(Y),len(omega)])
+    for m in range(len(omega)):
+        icll_table[:,m] = omega[m] * gaussian_pdf_vec(Y,Nu[m,:],Sigma[m,:,:]) * gaussian_pdf_vec(X,(Lambda[m,:,:].dot(Y.T)).T + Mu[m,:],Psi[m,:,:])
 
-        icll_partial_sum = 0
-        for m in range(len(omega)):
-
-            icll_partial_sum += omega_m * gaussian_pdf(Y[i,:],Nu[m,:],Sigma[m,:,:]) * gaussian_pdf(X[i,:],Lambda[m,:,:].dot(Y[i,:]) + Mu[m,:],Psi[m,:,:])
-
-        icll += np.log(icll_partial_sum)
+    icll = np.sum(np.log(np.sum(icll_table,axis = 1)))
 
     return icll
 
@@ -369,13 +353,14 @@ def nu_update(m,Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma):
     - updated nu parameter 
     '''
 
-    nu = np.zeros(8)
-    resp_sum = 0
-    for i in range(len(Ybar)):
-        nu += Gamma[i,m] * Ybar[i,:]
-        resp_sum += Gamma[i,m]
-    return nu / resp_sum
+    
+    nu = Gamma[:,m] .dot(Ybar)
+   
+    return nu /  Gamma[:,m].sum()
 
+
+
+   
 
 
 def Mu_update(m,Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma):
@@ -399,13 +384,10 @@ def Mu_update(m,Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma):
     - updated mu parameter 
     '''
 
-    mu = np.zeros(175)
-
-    resp_sum = 0
-    for i in range(len(Ybar)):
-        mu += Gamma[i,m] * (Xbar[i,:] - Lambda[m,:,:].dot(Ybar[i,:]))
-        resp_sum += Gamma[i,m]
-    return mu / resp_sum
+   
+    mu = Gamma[:,m] .dot( (Xbar - (Lambda[m,:,:].dot(Ybar.T)).T))
+   
+    return mu / Gamma[:,m].sum()
 
 
 def Sigma_update(m,Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma):
@@ -430,12 +412,11 @@ def Sigma_update(m,Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma):
     '''
 
     Sigma_m = np.zeros([8,8])
-    resp_sum = 0
+
     for i in range(len(Ybar)):
         Sigma_m += Gamma[i,m] * np.outer(Ybar[i,:] - Nu[m,:],Ybar[i,:] - Nu[m,:])
-        resp_sum += Gamma[i,m]
 
-    return Sigma_m / resp_sum
+    return Sigma_m / Gamma[:,m].sum()
 
 def Psi_update(m,Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma):
     '''
@@ -459,12 +440,12 @@ def Psi_update(m,Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma):
     '''
 
     Psi_m = np.zeros([175,175])
-    resp_sum = 0
-    for i in range(len(Ybar)):
-        Psi_m += Gamma[i,m] * np.outer(Xbar[i,:] - Lambda[m,:,:].dot(Ybar[i,:]) - Mu[m,:],Xbar[i,:] - Lambda[m,:,:].dot(Ybar[i,:]) - Mu[m,:])
-        resp_sum += Gamma[i,m]
 
-    return Psi_m / resp_sum
+
+    for i in range(len(Ybar)):
+        Psi_m += Gamma[i,m] * np.diag(np.diag(np.outer(Xbar[i,:] - Lambda[m,:,:].dot(Ybar[i,:]) - Mu[m,:],Xbar[i,:] - Lambda[m,:,:].dot(Ybar[i,:]) - Mu[m,:])))
+
+    return Psi_m / Gamma[:,m].sum()
 
 
 def Lambda_update(m,Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma):

@@ -14,8 +14,7 @@ for location_index = 1 : length(dirs)
     
     if(strcmp(dirs(location_index).name,'.') == 0 && ...
             strcmp(dirs(location_index).name,'..') == 0 && ...
-            strcmp(dirs(location_index).name,'.DS_Store') == 0 && ...
-            strcmp(dirs(location_index).name,'ORCCA') == 0)
+            strcmp(dirs(location_index).name,'.DS_Store') == 0)
      
         dirs(location_index).name
         
