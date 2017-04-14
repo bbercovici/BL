@@ -10,6 +10,7 @@ dirs = dir('../../data/locations/')
 base_colormap = '../../data/colormapBaseImg.png';
 
 %% Gabor
+% for all locations, for all images
 for location_index = 1 : length(dirs)
     
     if(strcmp(dirs(location_index).name,'.') == 0 && ...

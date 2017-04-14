@@ -76,6 +76,7 @@ function generateHighDimImageFeaturesFun(path,base_colormap)
         lxvec = prod(patchSize)*3 + prod(patchSize)*length(gorients);
         numxvecs = numel(I4c1);
         X = zeros(lxvec,numxvecs);
+        
         for vv=1:numxvecs
             X(:,vv) = [double(I5r{vv}(:));
                 double(I5g{vv}(:));
@@ -85,6 +86,7 @@ function generateHighDimImageFeaturesFun(path,base_colormap)
                 I4c3{vv}(:);
                 I4c4{vv}(:)];
         end
+        
         %%Store image data in structure
         Xall.data{ii} = X;
         Xall.imfiles{ii} = imfile;
