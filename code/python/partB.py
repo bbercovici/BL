@@ -152,7 +152,7 @@ def Gamma(Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi):
 
     for m in range(M):
         
-        log_Nx[m,:] = log_gaussian_pdf_vec_X(Xbar,Mu[m,:],Psi[m,:,:])
+        log_Nx[m,:] = log_gaussian_pdf_vec_X(Xbar,Mu[m,:] + (Lambda[m,:,:].dot(Ybar.T)).T,Psi[m,:,:])
         log_Ny[m,:] = log_gaussian_pdf_vec_general(Ybar,Nu[m,:],Sigma[m,:,:])
 
 
