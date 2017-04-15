@@ -3,7 +3,6 @@ from scipy.cluster.vq import kmeans2
 from scipy.cluster.vq import ClusterError
 from tqdm import tqdm
 
-LOGZERO = "LOGZERO"
 
 def init(Xbar,Ybar,M):
     '''
@@ -142,76 +141,43 @@ def init(Xbar,Ybar,M):
 
 
 
-def Gamma_stable(Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi):
-
+def Gamma(Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi):
+   
     N_R = len(Ybar)
     M = len(omega)
 
-    Gamma_eln = []
-    for i in range(N_R):
-        Gamma_eln += [[] ]
-        for m in range(M):
-            Gamma_eln[-1] += [[]]
-
+    Gamma = np.zeros([N_R,M])
     log_Nx = np.zeros([M,N_R])
     log_Ny = np.zeros([M,N_R])
 
     for m in range(M):
-
+        
         log_Nx[m,:] = log_gaussian_pdf_vec_X(Xbar,Mu[m,:],Psi[m,:,:])
         log_Ny[m,:] = log_gaussian_pdf_vec_general(Ybar,Nu[m,:],Sigma[m,:,:])
 
 
-    for i in tqdm(range(N_R)):
+    # The log of gamma is computed first
+    for i in range(N_R):
 
-        normalizer = LOGZERO
-
-        for m in range(M):
-
-            Gamma_eln[i][m] = elnproduct(log_Ny[m,i] + np.log(omega[m]),log_Nx[m,i] )
-
-            
-          
-            normalizer = elnsum(normalizer, Gamma_eln[i][m])
+        partial_sum = 0
+        
+        normalizer_X = max(log_Nx[:,i])
+        normalizer_Y = max(log_Nx[:,i])
+        normalizer = min(normalizer_X,normalizer_Y)
 
         for m in range(M):
-            Gamma_eln[i][m] = elnproduct(Gamma_eln[i][m],- normalizer)
+
+            partial_sum += np.exp(np.log(omega[m]) + log_Ny[m,i] + log_Nx[m,i] - normalizer)
+
+        denom = np.log(partial_sum) + normalizer
+
+
+        for m in range(M):
+            Gamma[i,m] = np.exp(np.log(omega[m]) + log_Ny[m,i] + log_Nx[m,i] - denom)
     
-    Gamma = np.exp(np.vstack(Gamma_eln))
-
     return Gamma
 
-def eexp(x):
-    if x == LOGZERO:
-        return 0
-    else:
-        return np.exp(x)
 
-def eln(x):
-    if x == 0:
-        return LOGZERO
-    elif (x > 0):
-        return np.log(x)
-    else:
-        ValueError("Negative input")
-
-def elnsum(eln_x,eln_y):
-    if eln_x == LOGZERO or eln_y == LOGZERO:
-        if eln_x == LOGZERO:
-            return eln_y
-        else:
-            return eln_x
-    else:
-        if eln_x > eln_y:
-            return eln_x + eln(1 + np.exp(eln_y - eln_x))
-        else:
-            return eln_y + eln(1 + np.exp(eln_x - eln_y))
-
-def elnproduct(eln_x,eln_y):
-    if eln_x == LOGZERO or eln_y == LOGZERO:
-        return LOGZERO 
-    else:
-        return eln_x + eln_y
 
 def XQ_to_YQ_GM(XQ,omega,Nu,Sigma,Lambda,Mu,Psi):  
     '''
@@ -296,19 +262,21 @@ def M_step(Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma):
     - Psi : {Psi_m} (M x 175 x 175)  (updated)
     '''
 
-    sum_resp = np.sum(Gamma,axis = 0)
     M = len(omega)
     N_R = len(Ybar)
 
-    omega = sum_resp / N_R
 
     for m in tqdm(range(M)):
+        Psi[m,:,:] = Psi_update(m,Xbar,Ybar,Lambda,Mu,Gamma)
+        Sigma[m,:,:] = Sigma_update(m,Xbar,Ybar,Nu,Gamma)
+        Lambda[m,:,:] = Lambda_update(m,Xbar,Ybar,Mu,Gamma)
        
-        Nu[m,:] = nu_update(m,Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma)
-        Sigma[m,:,:] = Sigma_update(m,Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma)
-        Mu[m,:] = Mu_update(m,Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma)
-        Lambda[m,:,:] = Lambda_update(m,Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma)
-        Psi[m,:,:] = Psi_update(m,Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma)
+        Nu[m,:] = Nu_update(m,Xbar,Ybar,Gamma)
+        Mu[m,:] = Mu_update(m,Xbar,Ybar,Lambda,Gamma)
+ 
+    omega = np.sum(Gamma,axis = 0) / N_R
+    
+    print omega
 
     return omega, Nu, Sigma, Lambda, Mu, Psi
 
@@ -390,7 +358,6 @@ def log_gaussian_pdf_X(arg,mean,cov):
     cov_inv = np.diag(1./np.diag(cov))
     log_det = np.sum(np.log(2 * np.pi * np.diag(cov)))
 
-
     return - 0.5 * np.inner(X,cov_inv.dot(X)) - 0.5 * log_det
 
 
@@ -427,7 +394,7 @@ def log_gaussian_pdf_general(arg,mean,cov):
 
     X = arg - mean
     
-    return -0.5 * np.log(np.linalg.det(2 * np.pi * cov)) - 0.5 * np.inner(X,np.linalg.inv(cov).dot(X))
+    return - 0.5 * np.log(np.linalg.det(2 * np.pi * cov)) - 0.5 * np.inner(X,np.linalg.inv(cov).dot(X))
 
 
 def log_gaussian_pdf_vec_general(arg,mean,cov):
@@ -445,7 +412,7 @@ def log_gaussian_pdf_vec_general(arg,mean,cov):
 
     X = arg - mean
 
-    return -0.5 * np.diag(np.dot(X,np.linalg.inv(cov).dot(X.T))) - 0.5 * np.log(np.linalg.det(2 * np.pi * cov))
+    return - 0.5 * np.diag(np.dot(X,np.linalg.inv(cov).dot(X.T))) - 0.5 * np.log(np.linalg.det(2 * np.pi * cov))
    
 
 
@@ -518,7 +485,6 @@ def ICLL(Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi):
 
     normalizer = np.amin(normalizers)
    
-    print "Normalizer: " + str(normalizer)
     icll = 0
     for i in tqdm(range(N_R)):
 
@@ -534,20 +500,14 @@ def ICLL(Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi):
     return icll
 
 
-def nu_update(m,Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma):
+def Nu_update(m,Xbar,Ybar,Gamma):
     '''
-    Computes the M-update for the m-th nu parameter
+    Computes the M-update for the m-th Nu parameter
     Inputs:
     -------
     - m : mixand index
     - Xbar : {x_i} (N_R x 175 )
     - Ybar : {y_i} (N_R x 8)
-    - omega : {w_m} (M)
-    - Nu : {Nu_m} (M x 8)
-    - Sigma : {Sigma_m} (M x 8 x 8)
-    - Lambda : {Lambda_m} (M x 175 x 8)
-    - Mu : {mu_m} (M x 175)
-    - Psi : {Psi_m} (M x 175 x 175)
     - Gamma : (N_R x M) 
     Outputs:
     -------
@@ -564,7 +524,7 @@ def nu_update(m,Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma):
    
 
 
-def Mu_update(m,Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma):
+def Mu_update(m,Xbar,Ybar,Lambda,Gamma):
     '''
     Computes the M-update for the m-th Mu parameter
     Inputs:
@@ -572,12 +532,7 @@ def Mu_update(m,Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma):
     - m : mixand index
     - Xbar : {x_i} (N_R x 175 )
     - Ybar : {y_i} (N_R x 8)
-    - omega : {w_m} (M)
-    - Nu : {Nu_m} (M x 8)
-    - Sigma : {Sigma_m} (M x 8 x 8)
     - Lambda : {Lambda_m} (M x 175 x 8)
-    - Mu : {mu_m} (M x 175)
-    - Psi : {Psi_m} (M x 175 x 175)
     - Gamma : (N_R x M) 
 
     Outputs:
@@ -585,13 +540,13 @@ def Mu_update(m,Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma):
     - updated mu parameter 
     '''
 
-   
+
     mu = Gamma[:,m] .dot( (Xbar - (Lambda[m,:,:].dot(Ybar.T)).T))
    
     return mu / Gamma[:,m].sum()
 
 
-def Sigma_update(m,Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma):
+def Sigma_update(m,Xbar,Ybar,Nu,Gamma):
     '''
     Computes the m-update for the Sigma parameters
     Inputs:
@@ -599,12 +554,7 @@ def Sigma_update(m,Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma):
     - m : mixand index
     - Xbar : {x_i} (N_R x 175 )
     - Ybar : {y_i} (N_R x 8)
-    - omega : {w_m} (M)
     - Nu : {Nu_m} (M x 8)
-    - Sigma : {Sigma_m} (M x 8 x 8)
-    - Lambda : {Lambda_m} (M x 175 x 8)
-    - Mu : {mu_m} (M x 175)
-    - Psi : {Psi_m} (M x 175 x 175)
     - Gamma : (N_R x M) 
 
     Outputs:
@@ -619,7 +569,7 @@ def Sigma_update(m,Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma):
 
     return Sigma_m / Gamma[:,m].sum()
 
-def Psi_update(m,Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma):
+def Psi_update(m,Xbar,Ybar,Lambda,Mu,Gamma):
     '''
     Computes the m-update for the Psi parameters
     Inputs:
@@ -627,12 +577,8 @@ def Psi_update(m,Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma):
     - m : mixand index
     - Xbar : {x_i} (N_R x 175 )
     - Ybar : {y_i} (N_R x 8)
-    - omega : {w_m} (M)
-    - Nu : {Nu_m} (M x 8)
-    - Sigma : {Sigma_m} (M x 8 x 8)
     - Lambda : {Lambda_m} (M x 175 x 8)
     - Mu : {mu_m} (M x 175)
-    - Psi : {Psi_m} (M x 175 x 175)
     - Gamma : (N_R x M) 
 
     Outputs:
@@ -640,16 +586,17 @@ def Psi_update(m,Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma):
     - updated Psi parameter
     '''
 
-    Psi_m = np.zeros([175,175])
+    Psi_m = np.zeros(175)
 
 
     for i in range(len(Ybar)):
-        Psi_m += Gamma[i,m] * np.outer(Xbar[i,:] - Lambda[m,:,:].dot(Ybar[i,:]) - Mu[m,:],Xbar[i,:] - Lambda[m,:,:].dot(Ybar[i,:]) - Mu[m,:])
+        Psi_m += Gamma[i,m] * np.diag(np.outer(Xbar[i,:] - Lambda[m,:,:].dot(Ybar[i,:]) - Mu[m,:],
+            Xbar[i,:] - Lambda[m,:,:].dot(Ybar[i,:]) - Mu[m,:]))
 
-    return np.diag(np.diag(Psi_m)) / Gamma[:,m].sum()
+    return np.diag(Psi_m) / Gamma[:,m].sum()
 
 
-def Lambda_update(m,Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma):
+def Lambda_update(m,Xbar,Ybar,Mu,Gamma):
     '''
     Computes the m-update for the Lambda parameters
     Inputs:
@@ -657,12 +604,7 @@ def Lambda_update(m,Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma):
     - m : mixand index
     - Xbar : {x_i} (N_R x 175 )
     - Ybar : {y_i} (N_R x 8)
-    - omega : {w_m} (M)
-    - Nu : {Nu_m} (M x 8)
-    - Sigma : {Sigma_m} (M x 8 x 8)
-    - Lambda : {Lambda_m} (M x 175 x 8)
     - Mu : {mu_m} (M x 175)
-    - Psi : {Psi_m} (M x 175 x 175)
     - Gamma : (N_R x M) 
 
     Outputs:

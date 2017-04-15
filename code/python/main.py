@@ -7,14 +7,14 @@ from scipy.cluster.vq import whiten
 
 
 # Maximum order of mixands to consider
-M_min = 4
-M_max = 4
+M_min = 2
+M_max = 10
 
 # Maximum number of iterations 
 N_iter_max = 300
 
 # Tolerance on ICLL
-tol = 1e-3
+tol = 1e-5
 
 # The training data is loaded
 Xbar = sio.loadmat("../../data/training/Xbar_R.mat")['Xbar_R'] # N_R by 175
@@ -41,30 +41,30 @@ for M in tqdm(range(M_min, M_max + 1)):
     icll_old = partB.ICLL(Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi)
 
     for n in range(N_iter_max):
+        
         print "\n########## Iteration " + str(n + 1) +" ############"
 
-
-        if n > 0:
-            # E-step : the responsibities are computed
-            print "\tE-step"
-            Gamma = partB.Gamma_stable(Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi)
+        # if n > 0:
+        # E-step : the responsibities are computed
+        print "\tE-step"
+        Gamma = partB.Gamma(Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi)
 
         # M-step : the parameters are updated
         print "\tM-step"
 
         omega, Nu, Sigma, Lambda, Mu, Psi = partB.M_step(Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma)
+        w
+        # icll = partB.ICLL(Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi)
 
-        icll = partB.ICLL(Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi)
+        # print "\nICLL: " + str(icll)
 
-        print "\nICLL: " + str(icll)
+        # change = (icll - icll_old) / np.abs(icll_old) * 100
+        # print "Relative change in ICLL (%): " + str(change) + " %"
 
-        change = (icll - icll_old) / np.abs(icll_old) * 100
-        print "Relative change in ICLL (%): " + str(change) + " %"
+        # if change < tol:
+        #     break
 
-        if np.abs(change) < tol:
-            break
-
-        icll_old = icll
+        # icll_old = icll
     
     # The BIC scored is computed and stored
     bic += [[M,partB.bic_score(N_R,icll,M)]]
