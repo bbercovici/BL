@@ -1,6 +1,9 @@
 import numpy as np
 from scipy.cluster.vq import kmeans2
+from scipy.cluster.vq import ClusterError
 from tqdm import tqdm
+
+LOGZERO = "LOGZERO"
 
 def init(Xbar,Ybar,M):
     '''
@@ -50,8 +53,6 @@ def init(Xbar,Ybar,M):
     ######## The parameters are now initialized ########
     ####################################################
 
-
-    
 
     ##################
     ###### Gamma #####
@@ -136,53 +137,81 @@ def init(Xbar,Ybar,M):
 
         Psi[m,:,:] = Psi[m,:,:] / count[m]
 
+
     return omega, Nu, Sigma, Lambda, Mu, Psi, Gamma
 
 
 
+def Gamma_stable(Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi):
 
-
-
-
-def E_step(Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi):
-    '''
-    Computes the responsabilities of the Gaussian mixture for the observations X,Y
-    Inputs:
-    ------
-    - Xbar : {x_i} (N_R x 175 )
-    - Ybar : {y_i} (N_R x 8)
-    - omega : {w_m} (M)
-    - Nu : {Nu_m} (M x 8)
-    - Sigma : {Sigma_m} (M x 8 x 8)
-    - Lambda : {Lambda_m} (M x 175 x 8)
-    - Mu : {mu_m} (M x 175)
-    - Psi : {Psi_m} (M x 175 x 175)
-    Outputs:
-    ------
-    Gamma : N_R x M responsibilities
-    '''
     N_R = len(Ybar)
     M = len(omega)
 
-    Gamma = np.zeros([N_R,M])
+    Gamma_eln = []
+    for i in range(N_R):
+        Gamma_eln += [[] ]
+        for m in range(M):
+            Gamma_eln[-1] += [[]]
 
-    for m in tqdm(range(M)):
-        Gamma[:,m] = omega[m] * gaussian_pdf_vec_Y(Ybar,Nu[m,:],Sigma[m,:,:]) * gaussian_pdf_vec_X(Xbar,(Lambda[m,:,:].dot(Ybar.T)).T + Mu[m,:],Psi[m,:,:])
+    log_Nx = np.zeros([M,N_R])
+    log_Ny = np.zeros([M,N_R])
 
-     # Nan terms are found and reset
+    for m in range(M):
+
+        log_Nx[m,:] = log_gaussian_pdf_vec_X(Xbar,Mu[m,:],Psi[m,:,:])
+        log_Ny[m,:] = log_gaussian_pdf_vec_general(Ybar,Nu[m,:],Sigma[m,:,:])
 
 
+    for i in tqdm(range(N_R)):
 
-    Gamma = np.diag(1./np.sum(Gamma,axis = 1)).dot( Gamma )
-  	
-    nan_indices = np.array(range(len(Gamma)))[np.isnan(Gamma).sum(axis = 1) > 0]
+        normalizer = LOGZERO
 
-    print nan_indices
-    if len(nan_indices) > 0:
-	    Gamma[nan_indices,0] = 1
-	    Gamma[nan_indices,1:] = 0
+        for m in range(M):
+
+            Gamma_eln[i][m] = elnproduct(log_Ny[m,i] + np.log(omega[m]),log_Nx[m,i] )
+
+            
+          
+            normalizer = elnsum(normalizer, Gamma_eln[i][m])
+
+        for m in range(M):
+            Gamma_eln[i][m] = elnproduct(Gamma_eln[i][m],- normalizer)
+    
+    Gamma = np.exp(np.vstack(Gamma_eln))
 
     return Gamma
+
+def eexp(x):
+    if x == LOGZERO:
+        return 0
+    else:
+        return np.exp(x)
+
+def eln(x):
+    if x == 0:
+        return LOGZERO
+    elif (x > 0):
+        return np.log(x)
+    else:
+        ValueError("Negative input")
+
+def elnsum(eln_x,eln_y):
+    if eln_x == LOGZERO or eln_y == LOGZERO:
+        if eln_x == LOGZERO:
+            return eln_y
+        else:
+            return eln_x
+    else:
+        if eln_x > eln_y:
+            return eln_x + eln(1 + np.exp(eln_y - eln_x))
+        else:
+            return eln_y + eln(1 + np.exp(eln_x - eln_y))
+
+def elnproduct(eln_x,eln_y):
+    if eln_x == LOGZERO or eln_y == LOGZERO:
+        return LOGZERO 
+    else:
+        return eln_x + eln_y
 
 def XQ_to_YQ_GM(XQ,omega,Nu,Sigma,Lambda,Mu,Psi):  
     '''
@@ -243,7 +272,7 @@ def infer_y_from_x(x,omega,Nu,Sigma,Lambda,Mu,Psi):
 
     return p_s_given_x.dot(mu_y_given_S_x)
 
-def M_step_short(Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma):
+def M_step(Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma):
     '''    
     Updates the parameters of the Gaussian mixture
     Inputs:
@@ -284,85 +313,6 @@ def M_step_short(Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma):
     return omega, Nu, Sigma, Lambda, Mu, Psi
 
 
-def M_step(Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma):
-    '''    
-    Updates the parameters of the Gaussian mixture
-    Inputs:
-    ------
-    - Xbar : {x_i} (N_R x 175 )
-    - Ybar : {y_i} (N_R x 8)
-    - omega : {w_m} (M)
-    - Nu : {Nu_m} (M x 8)
-    - Sigma : {Sigma_m} (M x 8 x 8)
-    - Lambda : {Lambda_m} (M x 175 x 8)
-    - Mu : {mu_m} (M x 175)
-    - Psi : {Psi_m} (M x 175 x 175)
-    - Gamma : Gamma : (N_R x M) responsibilities
-    Outputs:
-    -------
-    - omega : {w_m} (M) (updated)
-    - Nu : {Nu_m} (M x 8) (updated)
-    - Sigma : {Sigma_m} (M x 8 x 8) (updated)
-    - Lambda : {Lambda_m} (M x 175 x 8) (updated)
-    - Mu : {mu_m} (M x 175) (updated)
-    - Psi : {Psi_m} (M x 175 x 175)  (updated)
-    '''
-
-    sum_resp = np.sum(Gamma,axis = 0)
-    M = len(omega)
-    N_R = len(Ybar)
-
-    ##################
-    # Mixand weights #
-    ##################
-    print "\t Updating weights"
-
-    omega = sum_resp / N_R
-
-    ##################
-    ####### Nu #######
-    ##################
-    print "\t Updating Nu"
-    
-    for m in range(M):
-        Nu[m,:] = nu_update(m,Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma)
-
-    ##################
-    ##### Sigma ######
-    ##################
-    print "\t Updating Sigma"
-    
-    for m in range(0,M):
-        Sigma[m,:,:] = Sigma_update(m,Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma)
-
-
-    ##################
-    ####### Mu #######
-    ##################
-    print "\t Updating Mu"
-
-    for m in range(0,M):
-        Mu[m,:] = Mu_update(m,Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma)
-
-    ##################
-    ##### Lambda #####
-    ##################
-    print "\t Updating Lambda"
-    
-    for m in range(0,M):
-        Lambda[m,:,:] = Lambda_update(m,Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma)
-
-    ##################
-    ###### Psi #######
-    ##################
-    print "\t Updating Psi"
-
-    for m in range(0,M):
-        Psi[m,:,:] = Psi_update(m,Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma)
-
-    return omega, Nu, Sigma, Lambda, Mu, Psi
-
-
 def gaussian_pdf_vec_X(arg,mean,cov):
     '''
     Evaluates the Nx multivariate gaussian pdf 
@@ -382,6 +332,68 @@ def gaussian_pdf_vec_X(arg,mean,cov):
 
     return 1. / np.sqrt(det) * np.exp(-0.5 * np.diag(np.dot(X,cov_inv.dot(X.T))))
 
+
+def log_gaussian_pdf_vec_X(arg,mean,cov):
+    '''
+    Evaluates the log of the vector Nx gaussian pdf 
+    Inputs:
+    ------
+    - arg : arguments at which the pdf is evaluated 
+    - mean : mean of the pdf (N - by - M)
+    - cov : covariance of the pdf (M - by - M)
+    Outputs:
+    -----
+    - evaluated log of the pdf
+    '''
+
+    X = arg - mean
+    cov_inv = np.diag(1./np.diag(cov))
+    log_det = np.sum(np.log(2 * np.pi * np.diag(cov)))
+
+    return - 0.5 * np.diag(np.dot(X,cov_inv.dot(X.T))) - 0.5 * log_det
+
+
+
+def gaussian_pdf_X(arg,mean,cov):
+    '''
+    Evaluates the Nx gaussian pdf 
+    Inputs:
+    ------
+    - arg : arguments at which the pdf is evaluated 
+    - mean : mean of the pdf (N - by - M)
+    - cov : covariance of the pdf (M - by - M)
+    Outputs:
+    -----
+    - evaluated pdf
+    '''
+
+    X = arg - mean
+    cov_inv = np.diag(1./np.diag(cov))
+    det = np.prod(2 * np.pi * np.diag(cov))
+
+    return 1. / np.sqrt(det) * np.exp(-0.5 * np.inner(X,cov_inv.dot(X)))
+
+def log_gaussian_pdf_X(arg,mean,cov):
+    '''
+    Evaluates the log of the Nx gaussian pdf 
+    Inputs:
+    ------
+    - arg : arguments at which the pdf is evaluated 
+    - mean : mean of the pdf (N - by - M)
+    - cov : covariance of the pdf (M - by - M)
+    Outputs:
+    -----
+    - evaluated log of the pdf
+    '''
+
+    X = arg - mean
+    cov_inv = np.diag(1./np.diag(cov))
+    log_det = np.sum(np.log(2 * np.pi * np.diag(cov)))
+
+
+    return - 0.5 * np.inner(X,cov_inv.dot(X)) - 0.5 * log_det
+
+
 def gaussian_pdf_vec_general(arg,mean,cov):
     '''
     Evaluates a multivariate gaussian pdf 
@@ -400,26 +412,85 @@ def gaussian_pdf_vec_general(arg,mean,cov):
     return 1. / np.sqrt(np.linalg.det(2 * np.pi * cov)) * np.exp(-0.5 * np.diag(np.dot(X,np.linalg.inv(cov).dot(X.T))))
 
 
-def bic_score(N_R,icll):
+def log_gaussian_pdf_general(arg,mean,cov):
+    '''
+    Evaluates the log of a gaussian pdf 
+    Inputs:
+    ------
+    - arg : arguments at which the pdf is evaluated (N - by - N_R)
+    - mean : mean of the pdf (N - by - M)
+    - cov : covariance of the pdf (M - by - M)
+    Outputs:
+    -----
+    - evaluated pdf
+    '''
+
+    X = arg - mean
+    
+    return -0.5 * np.log(np.linalg.det(2 * np.pi * cov)) - 0.5 * np.inner(X,np.linalg.inv(cov).dot(X))
+
+
+def log_gaussian_pdf_vec_general(arg,mean,cov):
+    '''
+    Evaluates a multivariate gaussian pdf 
+    Inputs:
+    ------
+    - arg : arguments at which the pdf is evaluated (N - by - N_R)
+    - mean : mean of the pdf (N - by - M)
+    - cov : covariance of the pdf (M - by - M)
+    Outputs:
+    -----
+    - evaluated pdf
+    '''
+
+    X = arg - mean
+
+    return -0.5 * np.diag(np.dot(X,np.linalg.inv(cov).dot(X.T))) - 0.5 * np.log(np.linalg.det(2 * np.pi * cov))
+   
+
+
+
+
+
+def gaussian_pdf_general(arg,mean,cov):
+    '''
+    Evaluates a gaussian pdf 
+    Inputs:
+    ------
+    - arg : arguments at which the pdf is evaluated (N - by - N_R)
+    - mean : mean of the pdf (N - by - M)
+    - cov : covariance of the pdf (M - by - M)
+    Outputs:
+    -----
+    - evaluated pdf
+    '''
+
+    X = arg - mean
+   
+    return 1. / np.sqrt(np.linalg.det(2 * np.pi * cov)) * np.exp(-0.5 * np.inner(X,np.linalg.inv(cov).dot(X)))
+
+
+def bic_score(N_R,icll,M):
     '''
     Evaluates the BIC score of the gaussian mixture model
     Inputs:
     -------
     - N_R : number of observations
-    - icll
+    - icll : icll
+    - M : number of mixands in the model
     Outputs:
     -------
     - evaluated BIC score
     '''
 
-    k = M + M * 8 + M * 8. * (8 + 1) /2. + M * 175 + M * 175 + M * 175 * 8
+    k = (M - 1) + M * 8 + M * 8. * (8 + 1) /2. + M * 175 + M * 175 + M * 175 * 8
 
     return k * N_R - 2 * icll
 
 
 
 
-def ICLL(X,Y,omega,Nu,Sigma,Lambda,Mu,Psi):
+def ICLL(Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi):
     '''    
     Evaluates the ICLL
     Inputs:
@@ -436,12 +507,23 @@ def ICLL(X,Y,omega,Nu,Sigma,Lambda,Mu,Psi):
     -------
     - evaluated ICLL
     '''
+    N_R = len(Ybar)
+    M = len(omega)
 
-    icll_table = np.zeros([len(Y),len(omega)])
-    for m in tqdm(range(len(omega))):
-        icll_table[:,m] = omega[m] * gaussian_pdf_vec_Y(Y,Nu[m,:],Sigma[m,:,:]) * gaussian_pdf_vec_X(X,(Lambda[m,:,:].dot(Y.T)).T + Mu[m,:],Psi[m,:,:])
 
-    icll = np.sum(np.log(np.sum(icll_table,axis = 1)))
+    normalizer = max(np.amin(log_gaussian_pdf_vec_X(Xbar,(Lambda[0,:,:].dot(Ybar.T)).T + Mu[0,:],Psi[0,:,:])),-1500)
+
+    icll = 0
+    for i in tqdm(range(N_R)):
+
+        partial_sum = 0
+        for m in range(M):
+
+            partial_sum += np.exp(np.log(omega[m]) + log_gaussian_pdf_general(Ybar[i,:],Nu[m,:],Sigma[m,:,:])  + 
+                log_gaussian_pdf_X(Xbar[i,:],(Lambda[m,:,:].dot(Ybar[i,:])).T + Mu[m,:],Psi[m,:,:]) - normalizer)
+    
+        icll += np.log(partial_sum) + normalizer
+
 
     return icll
 

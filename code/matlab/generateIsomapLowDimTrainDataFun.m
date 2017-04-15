@@ -4,7 +4,7 @@ function generateIsomapLowDimTrainDataFun(directories)
     %% 0. Specify a data structure containing all the raw x data you want to 
     %% explicitly project using Isomap (for your training set data and images only). 
 
-    Nsamps = 1400; %number of samples per image 
+    Nsamps = 1000; %number of samples per image 
 
     %%create regular grid of patches to extract from each training image -- could replace with randomized?
     xind = floor(linspace(1,3072,Nsamps)); 
@@ -54,11 +54,11 @@ function generateIsomapLowDimTrainDataFun(directories)
                    
                 % Indices are formatted in a python fashion (starting at 0)
                 
-                new_indices = [length(Xbar_R):length(Xall.data{ii}(:,xind)) - 1 + length(Xbar_R)];
+                new_indices = [size(Xbar_R,2):size(Xall.data{ii}(:,xind),2) - 1 + size(Xbar_R,2)];
                 
                 Xbar_R = [Xbar_R, Xall.data{ii}(:,xind)];
                 
-              
+                
                 locations_to_indices_R.(directories(location_index).name)(:,ii) = new_indices';
                 
             end
@@ -67,7 +67,7 @@ function generateIsomapLowDimTrainDataFun(directories)
                    
                 % Indices are formatted in a python fashion (starting at 0)
                 
-                new_indices = [length(Xbar_Q):length(Xall.data{ii}(:,xind)) - 1 + length(Xbar_Q)];
+                new_indices = [size(Xbar_Q,2):size(Xall.data{ii}(:,xind),2) - 1 + size(Xbar_Q,2)];
                 
                 Xbar_Q = [Xbar_Q, Xall.data{ii}(:,xind)];
                 
