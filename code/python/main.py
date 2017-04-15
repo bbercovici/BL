@@ -7,11 +7,14 @@ from scipy.cluster.vq import whiten
 
 
 # Maximum order of mixands to consider
-M_min = 2
-M_max = 5
+M_min = 4
+M_max = 4
 
 # Maximum number of iterations 
-N_iter_max = 20
+N_iter_max = 300
+
+# Tolerance on ICLL
+tol = 1e-3
 
 # The training data is loaded
 Xbar = sio.loadmat("../../data/training/Xbar_R.mat")['Xbar_R'] # N_R by 175
@@ -58,7 +61,7 @@ for M in tqdm(range(M_min, M_max + 1)):
         change = (icll - icll_old) / np.abs(icll_old) * 100
         print "Relative change in ICLL (%): " + str(change) + " %"
 
-        if np.abs(change) < 0.01:
+        if np.abs(change) < tol:
             break
 
         icll_old = icll

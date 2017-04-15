@@ -485,7 +485,7 @@ def bic_score(N_R,icll,M):
 
     k = (M - 1) + M * 8 + M * 8. * (8 + 1) /2. + M * 175 + M * 175 + M * 175 * 8
 
-    return k * N_R - 2 * icll
+    return k * np.log(N_R) - 2 * icll
 
 
 
@@ -510,9 +510,15 @@ def ICLL(Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi):
     N_R = len(Ybar)
     M = len(omega)
 
+    normalizers = np.zeros(M)
+    for m in range(M):
+        normalizer_X = np.amax(log_gaussian_pdf_vec_X(Xbar,(Lambda[m,:,:].dot(Ybar.T)).T + Mu[m,:],Psi[m,:,:]))
+        normalizer_Y = np.amax(log_gaussian_pdf_vec_general(Ybar,Nu[m,:],Sigma[m,:,:]))
+        normalizers[m] = min(normalizer_X,normalizer_Y)
 
-    normalizer = max(np.amin(log_gaussian_pdf_vec_X(Xbar,(Lambda[0,:,:].dot(Ybar.T)).T + Mu[0,:],Psi[0,:,:])),-1500)
-
+    normalizer = np.amin(normalizers)
+   
+    print "Normalizer: " + str(normalizer)
     icll = 0
     for i in tqdm(range(N_R)):
 
@@ -521,7 +527,7 @@ def ICLL(Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi):
 
             partial_sum += np.exp(np.log(omega[m]) + log_gaussian_pdf_general(Ybar[i,:],Nu[m,:],Sigma[m,:,:])  + 
                 log_gaussian_pdf_X(Xbar[i,:],(Lambda[m,:,:].dot(Ybar[i,:])).T + Mu[m,:],Psi[m,:,:]) - normalizer)
-    
+            
         icll += np.log(partial_sum) + normalizer
 
 
