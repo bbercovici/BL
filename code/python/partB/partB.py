@@ -150,31 +150,33 @@ def Gamma(Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi):
     log_Nx = np.zeros([M,N_R])
     log_Ny = np.zeros([M,N_R])
 
+
     for m in range(M):
         
         log_Nx[m,:] = log_gaussian_pdf_vec_X(Xbar,Mu[m,:] + (Lambda[m,:,:].dot(Ybar.T)).T,Psi[m,:,:])
         log_Ny[m,:] = log_gaussian_pdf_vec_general(Ybar,Nu[m,:],Sigma[m,:,:])
 
+    normalizers = np.zeros([2,N_R])
+
+    normalizers[0,:] = np.amax(log_Nx,axis = 0)
+    normalizers[1,:] = np.amax(log_Ny,axis = 0)
+
+    normalizer = np.amin(normalizers,axis = 0)
+
 
     # The log of gamma is computed first
-    for i in range(N_R):
+    partial_sum = np.zeros([N_R])
+  
+    for m in range(M):
 
-        partial_sum = 0
-        
-        normalizer_X = max(log_Nx[:,i])
-        normalizer_Y = max(log_Nx[:,i])
-        normalizer = min(normalizer_X,normalizer_Y)
+        partial_sum += np.exp(np.log(omega[m]) + log_Ny[m,:] + log_Nx[m,:] - normalizer)
 
-        for m in range(M):
-
-            partial_sum += np.exp(np.log(omega[m]) + log_Ny[m,i] + log_Nx[m,i] - normalizer)
-
-        denom = np.log(partial_sum) + normalizer
+    denom = np.log(partial_sum) + normalizer
 
 
-        for m in range(M):
-            Gamma[i,m] = np.exp(np.log(omega[m]) + log_Ny[m,i] + log_Nx[m,i] - denom)
-    
+    for m in range(M):
+        Gamma[:,m] = np.exp(np.log(omega[m]) + log_Ny[m,:] + log_Nx[m,:] - denom)
+
     return Gamma
 
 
@@ -474,27 +476,33 @@ def ICLL(Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi):
     -------
     - evaluated ICLL
     '''
+
     N_R = len(Ybar)
     M = len(omega)
 
-    normalizers = np.zeros(M)
+    log_Nx = np.zeros([M,N_R])
+    log_Ny = np.zeros([M,N_R])
+
     for m in range(M):
-        normalizer_X = np.amax(log_gaussian_pdf_vec_X(Xbar,(Lambda[m,:,:].dot(Ybar.T)).T + Mu[m,:],Psi[m,:,:]))
-        normalizer_Y = np.amax(log_gaussian_pdf_vec_general(Ybar,Nu[m,:],Sigma[m,:,:]))
-        normalizers[m] = min(normalizer_X,normalizer_Y)
+        
+        log_Nx[m,:] = log_gaussian_pdf_vec_X(Xbar,Mu[m,:] + (Lambda[m,:,:].dot(Ybar.T)).T,Psi[m,:,:])
+        log_Ny[m,:] = log_gaussian_pdf_vec_general(Ybar,Nu[m,:],Sigma[m,:,:])
 
-    normalizer = np.amin(normalizers)
-   
-    icll = 0
-    for i in tqdm(range(N_R)):
+    normalizers = np.zeros([2,N_R])
 
-        partial_sum = 0
-        for m in range(M):
+    normalizers[0,:] = np.amax(log_Nx,axis = 0)
+    normalizers[1,:] = np.amax(log_Ny,axis = 0)
 
-            partial_sum += np.exp(np.log(omega[m]) + log_gaussian_pdf_general(Ybar[i,:],Nu[m,:],Sigma[m,:,:])  + 
-                log_gaussian_pdf_X(Xbar[i,:],(Lambda[m,:,:].dot(Ybar[i,:])).T + Mu[m,:],Psi[m,:,:]) - normalizer)
-            
-        icll += np.log(partial_sum) + normalizer
+    normalizer = np.amin(normalizers,axis = 0)
+
+    partial_sum = np.zeros([N_R])
+
+    for m in range(M):
+
+        partial_sum += np.exp(np.log(omega[m]) + log_gaussian_pdf_vec_general(Ybar,Nu[m,:],Sigma[m,:,:])  + 
+            log_gaussian_pdf_vec_X(Xbar,(Lambda[m,:,:].dot(Ybar.T)).T + Mu[m,:],Psi[m,:,:]) - normalizer)
+    
+    icll = (np.log(partial_sum) + normalizer).sum()
 
 
     return icll
