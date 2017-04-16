@@ -38,7 +38,13 @@ def init(Xbar,Ybar,M):
             try:
                     Nu, mixand_index = kmeans2(Ybar,M,iter = 400,missing = 'raise')
             except ClusterError:
-                raise ValueError("Kmeans returned empty clusters for more than 3 times")
+                try:
+                    Nu, mixand_index = kmeans2(Ybar,M,iter = 400,missing = 'raise')
+                except ClusterError:
+                    try:
+                        Nu, mixand_index = kmeans2(Ybar,M,iter = 400,missing = 'raise')
+                    except ClusterError:
+                        raise ValueError("Kmeans returned empty clusters for more than 5 times")
 
 
 
