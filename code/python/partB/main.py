@@ -8,13 +8,13 @@ from scipy.cluster.vq import whiten
 
 # Maximum order of mixands to consider
 M_min = 2
-M_max = 10
+M_max = 20
 
 # Maximum number of iterations 
 N_iter_max = 300
 
 # Tolerance on ICLL
-tol = 1e-5
+tol = 1e-2
 
 # The training data is loaded
 Xbar = sio.loadmat("../../data/training/Xbar_R.mat")['Xbar_R'] # N_R by 175
