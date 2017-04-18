@@ -1,5 +1,7 @@
 #include "partB.hpp"
 #include <boost/filesystem.hpp>
+#include <string>
+
 int main() {
 
 	// Maximum order of mixands to consider
