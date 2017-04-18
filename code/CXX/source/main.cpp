@@ -90,7 +90,7 @@ int main() {
 
 		// The BIC scored is computed and stored
 		double bic_s = bic_score(N_R, icll, M);
-		arma::vec result = {M, bic_s};
+		arma::vec result = {(double)(M), bic_s};
 		bic.col(M - M_min) = result;
 
 		// I should save the model somewhere here

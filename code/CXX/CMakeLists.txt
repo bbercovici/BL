@@ -19,16 +19,16 @@ execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion
 message("GCC version is " ${GCC_VERSION})
 
 if (GCC_VERSION VERSION_LESS 4.7) # if true, either running on a CCAR computer or a Mac (Clang has messed-up version IDs)
-		if (NOT APPLE) # If NOT APPLE, then running on a CCAR computer
-        	set(CMAKE_CXX_FLAGS "-std=c++0x")
-        else() # Else running on a MAC. Will attempt to switch compiler to get the OMP-friendly GCC 6.3.0_1 from Homebrew
-        	if(EXISTS /usr/local/Cellar/gcc/6.3.0_1/bin/) 
-	        	set(CMAKE_C_COMPILER /usr/local/Cellar/gcc/6.3.0_1/bin/gcc-6 CACHE STRING "C Compiler" FORCE)
-				set(CMAKE_CXX_COMPILER /usr/local/Cellar/gcc/6.3.0_1/bin/g++-6 CACHE STRING "C++ Compiler" FORCE)
-			endif()
-        endif()
-    else() # Running on a proper Linux machine
-    	set(CMAKE_CXX_FLAGS "-std=c++11")
+	if (NOT APPLE) # If NOT APPLE, then running on a CCAR computer
+    	set(CMAKE_CXX_FLAGS "-std=c++0x")
+    else() # Else running on a MAC. Will attempt to switch compiler to get the OMP-friendly GCC 6.3.0_1 from Homebrew
+    	if(EXISTS /usr/local/Cellar/gcc/6.3.0_1/bin/) 
+        	set(CMAKE_C_COMPILER /usr/local/Cellar/gcc/6.3.0_1/bin/gcc-6 CACHE STRING "C Compiler" FORCE)
+			set(CMAKE_CXX_COMPILER /usr/local/Cellar/gcc/6.3.0_1/bin/g++-6 CACHE STRING "C++ Compiler" FORCE)
+		endif()
+    endif()
+else() # Running on a proper Linux machine
+  	set(CMAKE_CXX_FLAGS "-std=c++11")
 endif()
 
 
@@ -48,6 +48,7 @@ add_definitions(-Wall -O2)
 # Include directories
 include_directories(include)
 include_directories(external/include)
+
 
 # Find Boost
 set(BOOST_ROOT /usr/local/Cellar/boost/1.63.0/)
@@ -70,6 +71,10 @@ if(OPENMP_FOUND)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
+
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
+message("CMAKE_CXX_FLAGS: " ${CMAKE_CXX_FLAGS})
 
 # Assimp
 # find_package(assimp)
@@ -102,6 +107,8 @@ source/main.cpp
 source/partB.cpp
 include/partB.hpp
 )
+
+
 
 # Linking
 set(library_dependencies
