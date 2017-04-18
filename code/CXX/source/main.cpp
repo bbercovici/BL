@@ -93,7 +93,7 @@ int main() {
 
 		// I should save the model somewhere here
 
-		std::string dir("/Users/bbercovici/GDrive/CUBoulder/Classes/ASEN6519-DM/Project/P2/BL/code/CXX/models/M_" + std::to_string(M) + "/" );
+		std::string dir("../models/M_" + std::to_string(M) + "/" );
 
 		omega.save(dir + "omega.mat", arma::raw_ascii);
 		Nu.save(dir + "Nu.mat", arma::raw_ascii);
@@ -108,7 +108,7 @@ int main() {
 	}
 
 	// The bic score is saved
-	bic.save("/Users/bbercovici/GDrive/CUBoulder/Classes/ASEN6519-DM/Project/P2/BL/code/CXX/models/bic.mat", arma::raw_ascii);
+	bic.save("../models/bic.mat", arma::raw_ascii);
 
 	return 0;
 }
