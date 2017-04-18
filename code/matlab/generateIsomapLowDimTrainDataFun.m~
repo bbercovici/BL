@@ -4,7 +4,7 @@ function generateIsomapLowDimTrainDataFun(directories)
     %% 0. Specify a data structure containing all the raw x data you want to 
     %% explicitly project using Isomap (for your training set data and images only). 
 
-    Nsamps = 500; %number of samples per image 
+    Nsamps = 1000; %number of samples per image 
 
     %%create regular grid of patches to extract from each training image -- could replace with randomized?
     xind_R = floor(linspace(1,3072,Nsamps)); 
@@ -52,7 +52,7 @@ function generateIsomapLowDimTrainDataFun(directories)
 
             [dimX,numPatches] = size(Xall.data{1});
             numImages = length(Xall.data);
-            used_images = floor(numImages/3);
+            used_images = floor(numImages/2);
             
           
             for ii=1:used_images %%only use first 4 images to extract training patches from
