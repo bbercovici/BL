@@ -208,11 +208,33 @@ def XQ_to_YQ_GM(XQ,omega,Nu,Sigma,Lambda,Mu,Psi):
     N_Q = XQ.shape[0]
     YQ = np.zeros([N_Q,8])
 
+    log_two_pi_det = np.zeros(len(omega))
+    cov_inv = np.zeros([len(omega),175,175])
+
+    for s in range(len(omega)):
+        cov = Psi[s,:,:] + Lambda[s,:,:].dot(Sigma[s,:,:].T).dot(Lambda[s,:,:].T)
+        eigval,eigvec = np.linalg.eig(2 * np.pi * cov)
+        log_two_pi_det[s] = np.sum(np.log(eigval))
+        cov_inv[s,:,:] = np.linalg.inv(cov)
+
+
+
     for q in tqdm(range(N_Q)):
-        YQ[q,:] = infer_y_from_x(XQ[q,:],omega,Nu,Sigma,Lambda,Mu,Psi)
+        YQ[q,:] = infer_y_from_x(XQ[q,:],
+        omega,
+        Nu,
+        Sigma,
+        Lambda,
+        Mu,
+        Psi, 
+        log_two_pi_det,
+        cov_inv)
 
 
-def infer_y_from_x(x,omega,Nu,Sigma,Lambda,Mu,Psi):
+def infer_y_from_x(x,omega,Nu,Sigma,Lambda,Mu,Psi,
+    log_two_pi_det = None,
+    cov_inv = None
+    ):
     '''
     Obtains the low-dimensional vector y corresponding to the provided
     high-dimensional vector x using the GM model
@@ -225,26 +247,38 @@ def infer_y_from_x(x,omega,Nu,Sigma,Lambda,Mu,Psi):
     - Lambda : {Lambda_m} (M x 175 x 8)
     - Mu : {mu_m} (M x 175)
     - Psi : {Psi_m} (M x 175 x 175)
+    - log_two_pi_det : logarithm of the augmented covariance matrices
+    - cov_inv : inverse of the augmented covariance matrices
     Outputs:
     ------
     - y : (1 x 8 )
     '''
 
     mu_y_given_S_x = np.zeros([len(omega),8])
-    p_x_given_s = np.zeros(len(omega))
-
+    log_p_x_given_s = np.zeros(len(omega))
 
     for s in range(len(omega)):
 
-        p_x_given_s[s] = gaussian_pdf_vec_general(x,Mu[s,:] + Lambda[s,:,:].dot(Nu[s,:]),Psi[s,:,:] + Lambda[s,:,:].dot(Sigma[s,:,:].T).dot(Lambda[s,:,:].T))
+        if log_two_pi_det is not None:
+            X = x - Mu[s,:] + Lambda[s,:,:].dot(Nu[s,:])
+            log_p_x_given_s[s] = - 0.5 * log_two_pi_det[s] - 0.5 * np.inner(X,cov_inv[s].dot(X))
+        
+        else:
+            log_p_x_given_s[s] = log_gaussian_pdf_general(x,
+            Mu[s,:] + Lambda[s,:,:].dot(Nu[s,:]),
+                Psi[s,:,:] + Lambda[s,:,:].dot(Sigma[s,:,:].T).dot(Lambda[s,:,:].T),stable_det = True)
+
 
         mu_y_given_S_x[s,:] = ( Nu[s,:] + np.linalg.inv(np.linalg.inv(Sigma[s,:,:]) + 
         Lambda[s,:,:].T.dot(np.linalg.inv(Psi[s,:,:])).dot(Lambda[s,:])).dot(Lambda[s,:,:].T.dot(np.linalg.inv(Psi[s,:,:]))).dot(x - Mu[s,:] - Lambda[s,:,:].dot(Nu[s,:])))
 
-    p_s_given_x = omega * p_x_given_s 
-    p_s_given_x = p_s_given_x / p_s_given_x.sum()
+    log_p_s_given_x = np.log(omega) + log_p_x_given_s
+   
+    normalizer = max(log_p_s_given_x)
+    
+    log_p_s_given_x = log_p_s_given_x - (np.log(np.sum(np.exp(log_p_s_given_x - normalizer))) + normalizer)
 
-    return p_s_given_x.dot(mu_y_given_S_x)
+    return np.exp(log_p_s_given_x).dot(mu_y_given_S_x)
 
 def M_step(Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi,Gamma):
     '''    
@@ -363,6 +397,7 @@ def log_gaussian_pdf_X(arg,mean,cov):
     '''
 
     X = arg - mean
+
     cov_inv = np.diag(1./np.diag(cov))
     log_det = np.sum(np.log(2 * np.pi * np.diag(cov)))
 
@@ -387,7 +422,7 @@ def gaussian_pdf_vec_general(arg,mean,cov):
     return 1. / np.sqrt(np.linalg.det(2 * np.pi * cov)) * np.exp(-0.5 * np.diag(np.dot(X,np.linalg.inv(cov).dot(X.T))))
 
 
-def log_gaussian_pdf_general(arg,mean,cov):
+def log_gaussian_pdf_general(arg,mean,cov,stable_det = False):
     '''
     Evaluates the log of a gaussian pdf 
     Inputs:
@@ -395,14 +430,21 @@ def log_gaussian_pdf_general(arg,mean,cov):
     - arg : arguments at which the pdf is evaluated (N - by - N_R)
     - mean : mean of the pdf (N - by - M)
     - cov : covariance of the pdf (M - by - M)
+    - stable_det : If true: Computes the determinant of the provided cov matrix through the eigenvalues
     Outputs:
     -----
     - evaluated pdf
     '''
 
+    if stable_det == False:
+        log_two_pi_det = np.log(np.linalg.det(2 * np.pi * cov))
+    else:
+        eigval,eigvec = np.linalg.eig(2 * np.pi * cov)
+        log_two_pi_det = np.sum(np.log(eigval))
+
     X = arg - mean
     
-    return - 0.5 * np.log(np.linalg.det(2 * np.pi * cov)) - 0.5 * np.inner(X,np.linalg.inv(cov).dot(X))
+    return - 0.5 * log_two_pi_det - 0.5 * np.inner(X,np.linalg.inv(cov).dot(X))
 
 
 def log_gaussian_pdf_vec_general(arg,mean,cov):
@@ -505,8 +547,7 @@ def ICLL(Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi):
 
     for m in range(M):
 
-        partial_sum += np.exp(np.log(omega[m]) + log_gaussian_pdf_vec_general(Ybar,Nu[m,:],Sigma[m,:,:])  + 
-            log_gaussian_pdf_vec_X(Xbar,(Lambda[m,:,:].dot(Ybar.T)).T + Mu[m,:],Psi[m,:,:]) - normalizer)
+        partial_sum += np.exp(np.log(omega[m]) + log_Ny[m,:]  + log_Ny[m,:] - normalizer)
     
     icll = (np.log(partial_sum) + normalizer).sum()
 
@@ -560,13 +601,12 @@ def Mu_update(m,Xbar,Ybar,Lambda,Gamma):
     return mu / Gamma[:,m].sum()
 
 
-def Sigma_update(m,Xbar,Ybar,Nu,Gamma):
+def Sigma_update(m,Ybar,Nu,Gamma):
     '''
     Computes the m-update for the Sigma parameters
     Inputs:
     -------
     - m : mixand index
-    - Xbar : {x_i} (N_R x 175 )
     - Ybar : {y_i} (N_R x 8)
     - Nu : {Nu_m} (M x 8)
     - Gamma : (N_R x M) 
@@ -630,7 +670,7 @@ def Lambda_update(m,Xbar,Ybar,Mu,Gamma):
     RHS = np.zeros([8,8])
 
     for i in range(len(Ybar)):
-        LHS += Gamma[i,m] * np.outer( Xbar[i,:] - Mu[m,:],Ybar[i,:])
+        LHS += Gamma[i,m] * np.outer(Xbar[i,:] - Mu[m,:],Ybar[i,:])
         RHS += Gamma[i,m] * np.outer(Ybar[i,:],Ybar[i,:])
 
     return LHS.dot(np.linalg.inv(RHS))

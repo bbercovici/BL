@@ -8,13 +8,13 @@ from scipy.cluster.vq import whiten
 
 # Maximum order of mixands to consider
 M_min = 2
-M_max = 20
+M_max = 2
 
 # Maximum number of iterations 
 N_iter_max = 300
 
 # Tolerance on ICLL
-tol = 1e-2
+tol = 1e-3
 
 # The training data is loaded
 Xbar = sio.loadmat("../../../data/training/Xbar_R.mat")['Xbar_R'] # N_R by 175
@@ -36,7 +36,7 @@ for M in tqdm(range(M_min, M_max + 1)):
 
     print "\nModel comprised of : " + str(M) + " mixands"
     omega, Nu, Sigma, Lambda, Mu, Psi, Gamma = partB.init(Xbar,Ybar,M)
-
+    
     
     icll_old = partB.ICLL(Xbar,Ybar,omega,Nu,Sigma,Lambda,Mu,Psi)
 
@@ -68,3 +68,11 @@ for M in tqdm(range(M_min, M_max + 1)):
     
     # The BIC scored is computed and stored
     bic += [[M,partB.bic_score(N_R,icll,M)]]
+
+    # The model is saved
+    sio.savemat("model_M_" + str(M) + ".mat",{'omega':omega,
+        'Nu':Nu,
+        'Sigma':Sigma,
+        'Lambda':Lambda,
+        'Mu':Mu,
+        'Psi':Psi})
