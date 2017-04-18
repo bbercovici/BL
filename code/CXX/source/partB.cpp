@@ -230,15 +230,15 @@ arma::mat Psi_update(unsigned int m,
                      arma::mat & Mu,
                      arma::mat & Gamma) {
 
-	arma::mat::fixed<175,175> psi_f;
+	arma::mat::fixed<175, 175> psi_f;
 	psi_f.fill(0);
 
 
 	for (unsigned int i = 0; i < Ybar.n_cols; ++i) {
 
 		psi_f += Gamma.row(m)(i) * (
-		           Xbar.col(i) - Lambda[m] * Ybar.col(i) - Mu.col(m)) * (
-		           Xbar.col(i) - Lambda[m] * Ybar.col(i) - Mu.col(m)).t();
+		             Xbar.col(i) - Lambda[m] * Ybar.col(i) - Mu.col(m)) * (
+		             Xbar.col(i) - Lambda[m] * Ybar.col(i) - Mu.col(m)).t();
 
 	}
 
@@ -267,12 +267,163 @@ arma::mat Lambda_update(unsigned int m,
 
 }
 
+
+
+
+void save_model(std::string dir,
+                arma::vec & omega,
+                arma::mat & Nu,
+                std::vector<arma::mat> & Sigma ,
+                std::vector<arma::mat> & Lambda,
+                arma::mat & Mu,
+                std::vector<arma::mat> & Psi) {
+
+	omega.save(dir + "omega.mat", arma::raw_ascii);
+	Nu.save(dir + "Nu.mat", arma::raw_ascii);
+	Mu.save(dir + "Mu.mat", arma::raw_ascii);
+
+	unsigned int M = omega.n_rows;
+
+	for (unsigned int m = 0; m < M; ++m) {
+		Sigma[m].save(dir + "Sigma_" + std::to_string(m) + ".mat", arma::raw_ascii);
+		Lambda[m].save(dir + "Lambda_" + std::to_string(m) + ".mat", arma::raw_ascii);
+		Psi[m].save(dir + "Psi_" + std::to_string(m) + ".mat", arma::raw_ascii);
+	}
+
+
+}
+
+
+void load_model(std::string dir,
+                arma::vec & omega,
+                arma::mat & Nu,
+                std::vector<arma::mat> & Sigma ,
+                std::vector<arma::mat> & Lambda,
+                arma::mat & Mu,
+                std::vector<arma::mat> & Psi) {
+
+	omega.load(dir + "omega.mat");
+	Nu.load(dir + "Nu.mat");
+	Mu.load(dir + "Mu.mat");
+
+	unsigned int M = omega.n_rows;
+
+
+	for (unsigned int m = 0; m < M; ++m) {
+
+		Sigma.push_back(arma::mat(8, 8));
+		Lambda.push_back(arma::mat(175, 8));
+		Psi.push_back(arma::mat(175, 175));
+
+		Sigma[Sigma.size() - 1].load(dir + "Sigma_" + std::to_string(m) + ".mat");
+		Lambda[m].load(dir + "Lambda_" + std::to_string(m) + ".mat");
+		Psi[m].load(dir + "Psi_" + std::to_string(m) + ".mat");
+	}
+
+
+}
+
+
+
+
+
+
+
+arma::mat XQ_to_YQ_GM( arma::mat & X_Q,
+                       arma::vec & omega,
+                       arma::mat & Nu,
+                       std::vector<arma::mat> & Sigma ,
+                       std::vector<arma::mat> & Lambda,
+                       arma::mat & Mu,
+                       std::vector<arma::mat> & Psi) {
+
+	unsigned int N_Q = X_Q.n_cols;
+	arma::mat Y_Q = arma::mat(8, N_Q);
+
+	arma::vec log_two_pi_det = arma::vec(N_Q);
+	std::vector<arma::mat> cov_inv;
+
+	for (unsigned int m = 0; m < omega.n_rows; ++m) {
+
+		arma::mat cov = Psi[m] + Lambda[m] * Sigma[m] * Lambda[m].t();
+		arma::vec eigval = arma::eig_sym( 2 * arma::datum::pi * cov ) ;
+		log_two_pi_det(m) = arma::sum(arma::log(eigval));
+		cov_inv.push_back(arma::inv(cov));
+
+	}
+
+	boost::progress_display show_progress(N_Q);
+
+	#pragma omp parallel for
+	for (unsigned int i = 0; i < N_Q; ++i) {
+
+		Y_Q.col(i) = infer_y_from_x(X_Q.col(i),
+		                            omega,
+		                            Nu,
+		                            Sigma,
+		                            Lambda,
+		                            Mu,
+		                            Psi,
+		                            log_two_pi_det,
+		                            cov_inv);
+		++show_progress;
+
+	}
+
+	return Y_Q;
+
+
+}
+
+arma::vec infer_y_from_x(arma::vec Xq,
+                         arma::vec & omega,
+                         arma::mat & Nu,
+                         std::vector<arma::mat> & Sigma ,
+                         std::vector<arma::mat> & Lambda,
+                         arma::mat & Mu,
+                         std::vector<arma::mat> & Psi,
+                         arma::vec & log_two_pi_det,
+                         std::vector<arma::mat> & cov_inv
+                        ) {
+
+	arma::mat mu_y_given_m_x = arma::mat(8, omega.n_rows);
+	arma::vec X = arma::vec(175);
+	arma::vec log_p_x_given_m = arma::vec(omega.n_rows);
+
+	for (unsigned int m = 0; m < omega.n_rows; ++m) {
+
+
+		X = Xq - Mu.col(m) - Lambda[m] * Nu.col(m);
+		log_p_x_given_m(m) = - 0.5 * log_two_pi_det(m) - 0.5 * arma::dot(X, cov_inv[m] * X);
+
+		mu_y_given_m_x.col(m) = (Nu.col(m) + arma::inv(arma::inv(Sigma[m]) +
+		                         Lambda[m].t() * arma::diagmat(1. / Psi[m].diag()) * Lambda[m]) * Lambda[m].t() * arma::diagmat(1. / Psi[m].diag()) *
+		                         (X));
+	}
+
+	arma::vec log_p_m_given_x = arma::log(omega) + log_p_x_given_m;
+	double normalizer = log_p_m_given_x.max();
+
+	log_p_m_given_x = log_p_m_given_x - ( std::log(arma::sum(arma::exp(log_p_m_given_x - normalizer))) + normalizer);
+
+	return mu_y_given_m_x * arma::exp(log_p_m_given_x);
+
+
+}
+
+
+
+
+
+
+
+
 arma::mat Sigma_update(unsigned int m,
                        arma::mat & Ybar,
                        arma::mat & Nu,
                        arma::mat & Gamma) {
 
-	arma::mat::fixed<8,8> sigma_f;
+	arma::mat::fixed<8, 8> sigma_f;
 	sigma_f.fill(0);
 
 	for (unsigned int i = 0; i < Ybar.n_cols; ++i) {

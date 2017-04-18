@@ -87,4 +87,39 @@ arma::vec log_gaussian_pdf_vec_general(arma::mat & Ybar,
 
 double bic_score(unsigned int N_R, double icll, unsigned M);
 
+arma::mat XQ_to_YQ_GM( arma::mat & X_Q,
+                       arma::vec & omega,
+                       arma::mat & Nu,
+                       std::vector<arma::mat> & Sigma ,
+                       std::vector<arma::mat> & Lambda,
+                       arma::mat & Mu,
+                       std::vector<arma::mat> & Psi);
+
+arma::vec infer_y_from_x(arma::vec Xq,
+                         arma::vec & omega,
+                         arma::mat & Nu,
+                         std::vector<arma::mat> & Sigma ,
+                         std::vector<arma::mat> & Lambda,
+                         arma::mat & Mu,
+                         std::vector<arma::mat> & Psi,
+                         arma::vec & log_two_pi_det,
+                         std::vector<arma::mat> & cov_inv
+                        );
+
+void load_model(std::string dir,
+                arma::vec & omega,
+                arma::mat & Nu,
+                std::vector<arma::mat> & Sigma ,
+                std::vector<arma::mat> & Lambda,
+                arma::mat & Mu,
+                std::vector<arma::mat> & Psi) ;
+
+void save_model(std::string dir,
+                arma::vec & omega,
+                arma::mat & Nu,
+                std::vector<arma::mat> & Sigma ,
+                std::vector<arma::mat> & Lambda,
+                arma::mat & Mu,
+                std::vector<arma::mat> & Psi);
+
 #endif

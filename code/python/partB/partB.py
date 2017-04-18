@@ -607,6 +607,7 @@ def Sigma_update(m,Ybar,Nu,Gamma):
     Inputs:
     -------
     - m : mixand index
+    - Xbar : {x_i} (N_R x 175 )
     - Ybar : {y_i} (N_R x 8)
     - Nu : {Nu_m} (M x 8)
     - Gamma : (N_R x M) 
