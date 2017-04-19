@@ -76,7 +76,6 @@ int main() {
 			std::cout << "\tM-step" << std::endl;
 			M_step(X_bar_R, Y_bar_R, omega, Nu, Sigma, Lambda, Mu, Psi, Gamma);
 
-			throw (std::runtime_error(""));
 
 			// The icll is recomputed
 			icll = ICLL(X_bar_R, Y_bar_R, omega, Nu, Sigma, Lambda, Mu, Psi);

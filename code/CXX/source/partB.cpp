@@ -138,6 +138,7 @@ void M_step(arma::mat & Xbar,
 
 
 	boost::progress_display show_progress(M);
+
 	for (unsigned int m = 0; m < M; ++m) {
 		Psi[m] = Psi_update(m, Xbar, Ybar, Lambda, Mu, Gamma);
 		Sigma[m] = Sigma_update(m, Ybar, Nu, Gamma);
@@ -148,9 +149,10 @@ void M_step(arma::mat & Xbar,
 
 		Mu.col(m) = Mu_update(m, Xbar, Ybar, Lambda, Gamma);
 
-		omega = arma::sum(Gamma, 1) / N_R;
 		++show_progress;
 	}
+	omega = arma::sum(Gamma, 1) / N_R;
+
 
 
 
@@ -214,7 +216,7 @@ arma::vec Nu_update(unsigned int m,
                     arma::mat & Ybar,
                     arma::mat & Gamma) {
 
-	std::cout << arma::sum(arma::sum(Ybar)) << std::endl;
+	std::cout << (Ybar *  Gamma.row(m).t()).col(0) << std::endl;
 
 	return (Ybar *  Gamma.row(m).t()) / arma::sum(Gamma.row(m));
 
