@@ -134,10 +134,14 @@ void M_step(arma::mat & Xbar,
 
 	unsigned int N_R = Ybar.n_cols;
 	unsigned int M = omega.n_rows;
-	
+
 	std::cout << Sigma[0] << std::endl;
 	std::cout << Nu << std::endl;
 	std::cout << Mu << std::endl;
+	std::cout << Lambda[0] << std::endl;
+	std::cout << Psi[0] << std::endl;
+
+
 
 	boost::progress_display show_progress(M);
 	for (unsigned int m = 0; m < M; ++m) {
