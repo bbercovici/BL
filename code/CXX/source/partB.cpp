@@ -135,12 +135,6 @@ void M_step(arma::mat & Xbar,
 	unsigned int N_R = Ybar.n_cols;
 	unsigned int M = omega.n_rows;
 
-	std::cout << Sigma[0] << std::endl;
-	std::cout << Nu << std::endl;
-	std::cout << Mu << std::endl;
-	std::cout << Lambda[0] << std::endl;
-	std::cout << Psi[0] << std::endl;
-
 
 
 	boost::progress_display show_progress(M);
@@ -150,6 +144,8 @@ void M_step(arma::mat & Xbar,
 		Lambda[m] = Lambda_update(m, Xbar, Ybar, Mu, Gamma);
 
 		Nu.col(m) = Nu_update(m, Ybar, Gamma);
+		throw (std::runtime_error(""));
+
 		Mu.col(m) = Mu_update(m, Xbar, Ybar, Lambda, Gamma);
 
 		omega = arma::sum(Gamma, 1) / N_R;
@@ -217,7 +213,7 @@ void E_step(arma::mat & Xbar,
 arma::vec Nu_update(unsigned int m,
                     arma::mat & Ybar,
                     arma::mat & Gamma) {
-
+	std::cout << (Ybar *  Gamma.row(m).t()) / arma::sum(Gamma.row(m)) << std::endl;
 	return (Ybar *  Gamma.row(m).t()) / arma::sum(Gamma.row(m));
 
 }
