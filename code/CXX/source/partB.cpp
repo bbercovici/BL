@@ -216,7 +216,6 @@ arma::vec Nu_update(unsigned int m,
 
 	std::cout << (Ybar *  Gamma.row(m).t()) / arma::sum(Gamma.row(m)) << std::endl;
 	std::cout << arma::sum(Gamma.row(m)) << std::endl;
-	std::cout << Gamma.row(m).t() << std::endl;
 
 	return (Ybar *  Gamma.row(m).t()) / arma::sum(Gamma.row(m));
 
