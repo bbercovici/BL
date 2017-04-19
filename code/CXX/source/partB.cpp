@@ -161,6 +161,7 @@ void E_step(arma::mat & Xbar,
             arma::mat & Gamma) {
 
 
+
 	unsigned int N_R = Ybar.n_cols;
 	unsigned int M = omega.n_rows;
 
