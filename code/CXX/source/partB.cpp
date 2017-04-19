@@ -150,6 +150,8 @@ void M_step(arma::mat & Xbar,
 
 	std::cout << Sigma[0] << std::endl;
 	std::cout << Nu << std::endl;
+	std::cout << Mu << std::endl;
+
 
 }
 
