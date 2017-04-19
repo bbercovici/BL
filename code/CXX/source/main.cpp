@@ -75,10 +75,8 @@ int main() {
 			// M-step
 			std::cout << "\tM-step" << std::endl;
 			M_step(X_bar_R, Y_bar_R, omega, Nu, Sigma, Lambda, Mu, Psi, Gamma);
-				std::cout << omega << std::endl;
 
-				std::cout << Nu.col(0) << std::endl;
-				throw (std::runtime_error(""));
+			throw (std::runtime_error(""));
 
 			// The icll is recomputed
 			icll = ICLL(X_bar_R, Y_bar_R, omega, Nu, Sigma, Lambda, Mu, Psi);

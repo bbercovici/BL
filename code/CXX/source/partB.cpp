@@ -148,6 +148,8 @@ void M_step(arma::mat & Xbar,
 		++show_progress;
 	}
 
+	std::cout << Sigma[0] << std::endl;
+
 }
 
 void E_step(arma::mat & Xbar,
@@ -159,7 +161,6 @@ void E_step(arma::mat & Xbar,
             arma::mat & Mu,
             std::vector<arma::mat> & Psi,
             arma::mat & Gamma) {
-
 
 
 	unsigned int N_R = Ybar.n_cols;
