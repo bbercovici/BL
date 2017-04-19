@@ -145,7 +145,8 @@ void M_step(arma::mat & Xbar,
 		Lambda[m] = Lambda_update(m, Xbar, Ybar, Mu, Gamma);
 
 		Nu.col(m) = Nu_update(m, Ybar, Gamma);
-		throw (std::runtime_error(""));
+		
+		// throw (std::runtime_error(""));
 
 		Mu.col(m) = Mu_update(m, Xbar, Ybar, Lambda, Gamma);
 
@@ -216,10 +217,12 @@ arma::vec Nu_update(unsigned int m,
                     arma::mat & Ybar,
                     arma::mat & Gamma) {
 
-	arma::vec test = Ybar * (Gamma.row(m).t());
+	// Ybar.fill(1);
+	// Gamma.fill(1);
+
+	arma::vec test = Ybar.row(0) * (Gamma.row(m).t());
 
 	std::cout << std::endl << arma::dot(Ybar.row(0), Gamma.row(m)) << std::endl;
-	std::cout << std::endl << arma::dot(Ybar.row(1), Gamma.row(m)) << std::endl;
 
 	std::cout << test << std::endl;
 
