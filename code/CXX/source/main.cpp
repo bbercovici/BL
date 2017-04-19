@@ -141,7 +141,7 @@ int main() {
 
 
 	std::cout << "Generating missing observations" << std::endl;
-	arma::mat Y_bar_Q = XQ_to_YQ_GM( X_bar_R,
+	arma::mat Y_bar_Q = XQ_to_YQ_GM( X_bar_Q,
 	                             omega,
 	                             Nu,
 	                             Sigma ,

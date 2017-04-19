@@ -2,7 +2,7 @@ import numpy as np
 from scipy.cluster.vq import kmeans2
 from scipy.cluster.vq import ClusterError
 from tqdm import tqdm
-
+import scipy.io as sio
 
 def init(Xbar,Ybar,M):
     '''
@@ -675,8 +675,4 @@ def Lambda_update(m,Xbar,Ybar,Mu,Gamma):
         RHS += Gamma[i,m] * np.outer(Ybar[i,:],Ybar[i,:])
 
     return LHS.dot(np.linalg.inv(RHS))
-
-
-
-
 
