@@ -56,10 +56,11 @@ int main() {
 		std::cout << "Model comprised of : " << M << " mixands" << std::endl;
 
 		init(M, X_bar_R, Y_bar_R, omega, Nu, Sigma, Lambda, Mu, Psi, Gamma);
+		
 
 		double icll_old = ICLL(X_bar_R, Y_bar_R, omega, Nu, Sigma, Lambda, Mu, Psi);
 		double icll = 0;
-
+		
 		for (unsigned int n = 0; n < N_iter_max; ++n) {
 
 			std::cout << "########## Iteration " << std::to_string(n + 1) << " ############" << std::endl;
