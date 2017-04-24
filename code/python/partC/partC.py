@@ -5,43 +5,7 @@ from scipy.special import digamma, gammaln, gamma
 from scipy.cluster.vq import kmeans2
 from scipy.io import loadmat
 import matplotlib.pyplot as plt
-
-# ------------------------------------------ RESULTS PLOTTING ------------------------------------------#
-def save_plot(str):
-    """
-    Defines where and how to save the plots with the results from part C
-    """
-    def define_plots_folder_path():
-        """
-        Defines the absolute path of the folder where plots are saved, according to its relative path to this file
-        """
-        filename = inspect.getframeinfo(inspect.currentframe()).filename
-        path = os.path.dirname(os.path.abspath(filename))
-        splitFolderName = 'code/'
-        splitPath = path.split(splitFolderName)
-        plotPath = splitPath[0] + 'report/FiguresC/'
-        return plotPath
-
-    plotPath = define_plots_folder_path()
-    plt.rcParams['figure.figsize'] = 3.0, 3.0
-    plt.rcParams.update({'font.size': 8})
-    plt.savefig(plotPath + "/" + str + ".pdf", bbox_inches='tight')
-
-
-def plot_lower_bound(L_vec, plt_color, plt_name, bool_plt_saved):
-    """
-    Plots the results from part C
-    """
-    plt.figure()
-    plt.plot(L_vec, color= plt_color)
-    plt.xlabel('Iteration, $it$')
-    plt.ylabel('Lower bound value, ${L}$')
-    plt.legend(['${L}$'])
-    title = 'Lower bound evaluation for location: ' + plt_name
-    if bool_plt_saved:
-        save_plot(plt_name)
-    else:
-        plt.title(title)
+import plotting 
 
 # ------------------------------------------ MATLAB DATA LOADING ------------------------------------------#
 def find_matlab_data_path():
@@ -166,12 +130,14 @@ def compute_L_q_Z(R_vec):
             L_q_Z += R_vec[n, k] * np.log(R_vec[n, k])
     return L_q_Z
 
-def compute_L_p_MuSigma(B0_prior, m0_vec_prior, v0_prior, W0_prior, B_vec, m_vec, v_vec, W_vec, lnSigma_vec):
+def compute_L_p_MuSigma(B0_prior, m_vec0, v0_prior, W0_prior, B_vec, m_vec, v_vec, W_vec, lnSigma_vec):
     """
     Computes E[ln P(Mu, Sigma)]
 
     :param: B0_prior [scalar]: initial Beta hyper-parameters of apriori Normal distrib
-    :param: m0_vec_prior [1xD]: initial mean vector of apriori Normal distrib
+
+    :param: m_vec0 [MxD]: array with initial mean vectors of apriori Normal distrib
+
     :param: v0_prior [scalar]: initial DOF value of apriori Wishart distrib
     :param: W0_prior [DxD]: initial covar matrix of apriori Wishart distrib
 
@@ -194,7 +160,7 @@ def compute_L_p_MuSigma(B0_prior, m0_vec_prior, v0_prior, W0_prior, B_vec, m_vec
         W_k = W_vec[k * D:(k + 1) * D, :]
         sum_k1 += v_vec[k] * np.trace(np.dot(W0_inv, W_k))
 
-        diff_k = m_vec[k, :] - m0_vec_prior
+        diff_k = m_vec[k, :] - m_vec0[k, :]
         sum_k2 += (D*np.log(B0_prior / (2.0*np.pi)) + lnSigma_vec[k] - D*B0_prior/B_vec[k] -
                    B0_prior*v_vec[k]*np.dot(diff_k, np.dot(W_k, diff_k)))
 
@@ -262,13 +228,15 @@ def compute_L_p_Y(B_vec, m_vec, v_vec, W_vec, YHat_vec, S_vec, R_vec, lnSigma_ve
 
 
 # ------------------------------------------ LOWER BOUND  ------------------------------------------#
-def compute_lower_bound_L(alpha_vec_prior, B0_prior, m0_vec_prior, v0_prior, W0_prior,
+def compute_lower_bound_L(alpha_vec_prior, B0_prior, m_vec0, v0_prior, W0_prior,
                           alpha_vec, B_vec, m_vec, v_vec, W_vec, YHat_vec, S_vec, R_vec, lnPi_vec, lnSigma_vec):
     """
     Computes the variational lower bound L
     :param: alpha_vec_prior [Mx1]  array w/ initial alpha_k values of apriori Dirichlet distrib for each GM k
     :param: B0_prior [scalar]: initial Beta hyper-parameters of apriori Normal distrib
-    :param: m0_vec_prior [1xD]: initial mean vector of apriori Normal distrib
+
+    :param: m_vec0 [MxD]: array with initial mean vectors of apriori Normal distrib
+
     :param: v0_prior [scalar]: initial DOF value of apriori Wishart distrib
     :param: W0_prior [DxD]: initial covar matrix of apriori Wishart distrib
 
@@ -288,7 +256,7 @@ def compute_lower_bound_L(alpha_vec_prior, B0_prior, m0_vec_prior, v0_prior, W0_
     L_p_Y = compute_L_p_Y(B_vec, m_vec, v_vec, W_vec, YHat_vec, S_vec, R_vec, lnSigma_vec)
     L_p_Z = compute_L_p_Z(R_vec, lnPi_vec)
     L_p_Pi = compute_L_p_Pi(alpha_vec_prior, lnPi_vec)
-    L_p_MuSigma = compute_L_p_MuSigma(B0_prior, m0_vec_prior, v0_prior, W0_prior, B_vec, m_vec, v_vec, W_vec, lnSigma_vec)
+    L_p_MuSigma = compute_L_p_MuSigma(B0_prior, m_vec0, v0_prior, W0_prior, B_vec, m_vec, v_vec, W_vec, lnSigma_vec)
     L_q_Z = compute_L_q_Z(R_vec)
     L_q_Pi = compute_L_q_Pi(alpha_vec, lnPi_vec)
     L_q_MuSigma = compute_L_q_MuSigma(B_vec, m_vec, v_vec, W_vec, lnSigma_vec)
@@ -375,9 +343,11 @@ def compute_responsibilities_R(P_vec):
     R_vec = np.full_like(P_vec, 0.0)
     for n in range(0, P_vec.shape[0]):
         sum_p_nj = np.sum(P_vec[n, :])
+        #print 'sum_p_nj = ', sum_p_nj
         for k in range(0, P_vec.shape[1]):
             r_nk = P_vec[n, k] * 1.0 / sum_p_nj
             R_vec[n, k] = r_nk
+            #print 'P_nk = ', P_vec[n, k], '\t r_nk = ', r_nk
     return R_vec
 
 
@@ -435,12 +405,14 @@ def compute_dirichlet_hyperparams(alpha_vec_prior, R_vec):
         alpha_vec[k] = alpha_k
     return alpha_vec
 
-def compute_normal_wishart_hyperparams(B0_prior, m0_vec_prior, v0_prior, W0_prior, YHat_vec, S_vec, R_vec):
+def compute_normal_wishart_hyperparams(B0_prior, m_vec0, v0_prior, W0_prior, YHat_vec, S_vec, R_vec):
     """
     Computes the new m and Beta params of the Normal distribution, and
     Computes the new v and W params of the Wishart distribution.
     :param: B0_prior [scalar]: initial Beta hyper-parameters of apriori Normal distrib
-    :param: m0_vec_prior [1xD]: initial mean vector of apriori Normal distrib
+
+    :param: m_vec0 [MxD]: array with initial mean vectors of apriori Normal distrib
+
     :param: v0_prior [scalar]: initial DOF value of apriori Wishart distrib
     :param: W0_prior [DxD]: initial covar matrix of apriori Wishart distrib
     :param: YHat_vec [MxD] array of the [1xD] y_mean for each gaussian mixture k
@@ -461,9 +433,9 @@ def compute_normal_wishart_hyperparams(B0_prior, m0_vec_prior, v0_prior, W0_prio
     for k in range(0, R_vec.shape[1]):
         N_k = np.sum(R_vec[:, k])
         B_k = B0_prior + N_k
-        m_k = (1.0/B_k) * (B0_prior*m0_vec_prior + N_k*YHat_vec[k, :])
+        m_k = (1.0/B_k) * (B0_prior*m_vec0[k, :] + N_k*YHat_vec[k, :])
         W_k_inv = W0_inv + N_k*S_vec[k*YHat_vec.shape[1]:(k+1)*YHat_vec.shape[1], :] + \
-                 B0_prior*N_k/(B0_prior + N_k)*np.outer(YHat_vec[k, :] - m0_vec_prior, YHat_vec[k, :] - m0_vec_prior)
+                 B0_prior*N_k/(B0_prior + N_k)*np.outer(YHat_vec[k, :] - m_vec0[k, :], YHat_vec[k, :] - m_vec0[k, :])
         v_k = v0_prior + N_k
         # Store vars
         B_vec[k] = B_k
@@ -546,6 +518,18 @@ def generate_initial_hyperparam_vectors(alpha_vec_prior, B0_prior, v0_prior, W0_
 
 
 # ------------------------------------------ VARIATIONAL OPTIMIZATION ------------------------------------------#
+def compute_N_vec(R_vec):
+    """
+    Computes all the N_k terms and stores them in a [Mx1] array
+    :param: R_vec [NxM] double-array w/ all responsibilities r_nk for each gaussian mixture k of each data point n
+    :return: Nk_vec:[Mx1  array with N_k term of each gaussian mixture k
+    """
+    Nk_vec = np.zeros(R_vec.shape[1])
+    for k in range(0, R_vec.shape[1]):
+        N_k = np.sum(R_vec[:, k])
+        Nk_vec[k] = N_k
+    return Nk_vec
+
 
 def optimize_variational_distributions(alpha_vec_prior, B0_prior, m0_vec_prior, v0_prior, W0_prior, Y_vec):
 
@@ -553,7 +537,7 @@ def optimize_variational_distributions(alpha_vec_prior, B0_prior, m0_vec_prior, 
     Variational Bayes iterative process
     :param: alpha_vec_prior [Mx1]  array w/ initial alpha_k values of apriori Dirichlet distrib for each GM k
     :param: B0_prior [scalar]: initial Beta hyper-parameters of apriori Normal distrib
-    :param: m0_vec_prior [1xD]: initial mean vector of apriori Normal distrib
+    :param: m0_vec_prior [1xD]: initial mean vector of apriori Normal distrib. NOT USED!!!!!!
     :param: v0_prior [scalar]: initial DOF value of apriori Wishart distrib
     :param: W0_prior [DxD]: initial covar matrix of apriori Wishart distrib
     :param: Y_vec [NxD]  array of the [1xD] observation variables y_n for each data point n
@@ -561,12 +545,14 @@ def optimize_variational_distributions(alpha_vec_prior, B0_prior, m0_vec_prior, 
     """
 
     it_max = 1E4 # 1E8 # maxim number of iterations before stopping the sim
-    tol_dL = 1E-3 # tolerance for lower bound L convergence
+    tol_dL = 0.0#1E-8 # tolerance for lower bound L convergence
 
     alpha_vec, B_vec, m_vec, v_vec, W_vec = \
         generate_initial_hyperparam_vectors(alpha_vec_prior, B0_prior, v0_prior, W0_prior, Y_vec) # m0_vec_prior not needed
 
     L_vec = []
+    m_vec0 = m_vec.copy()
+    print 'm_vec0 = ',m_vec0
     for i in range(0, int(it_max)):
         # Step 1: evaluate responsibilities with current distributions over model params.
         P_vec, lnPi_vec, lnSigma_vec = compute_probabilities_P(alpha_vec, B_vec, m_vec, v_vec, W_vec, Y_vec)
@@ -576,20 +562,22 @@ def optimize_variational_distributions(alpha_vec_prior, B0_prior, m0_vec_prior, 
         # Step 2: recompute the variational distributions over the model params with current responsibilities
         alpha_vec = compute_dirichlet_hyperparams(alpha_vec_prior, R_vec)
         B_vec, m_vec, v_vec, W_vec = \
-            compute_normal_wishart_hyperparams(B0_prior, m0_vec_prior, v0_prior, W0_prior, YHat_vec, S_vec, R_vec)
+            compute_normal_wishart_hyperparams(B0_prior, m_vec0, v0_prior, W0_prior, YHat_vec, S_vec, R_vec)
 
         # Check convergence: compute lower bound L
-        L = compute_lower_bound_L(alpha_vec_prior, B0_prior, m0_vec_prior, v0_prior, W0_prior,
+        L = compute_lower_bound_L(alpha_vec_prior, B0_prior, m_vec0, v0_prior, W0_prior,
                               alpha_vec, B_vec, m_vec, v_vec, W_vec, YHat_vec, S_vec, R_vec, lnPi_vec, lnSigma_vec)
         L_vec.append(L)
         print 'L = ', L
+        #print 'Nk_vec =', compute_N_vec(R_vec)
+        print 'R_nk = \n', R_vec
+
         if i > 0:
-            dL = L_vec[i] - L_vec[i-1]
+            dL = np.abs(L_vec[i] - L_vec[i-1])
             if dL < tol_dL:
                 print 'Lower bound L converged!'
-                for k in range(0, R_vec.shape[1]):
-                    N_k = np.sum(R_vec[:, k])
-                    print 'k = ', k, '\t N_k = ', N_k
+                #print 'Nk_vec =', compute_N_vec(R_vec)
+                print 'R_nk = \n', R_vec
                 break
     return L_vec
 
@@ -618,7 +606,7 @@ def run_location_ORCCA(Y_ORCCA, bool_plt_saved):
     print '\n' + 'Running location: ORCCA'
     M = 12  # number of Gaussian Mixture models
     L_vec = main_VB(M, Y_ORCCA)
-    plot_lower_bound(L_vec, 'lightgreen', 'ORCCA', bool_plt_saved)
+    plotting.plot_lower_bound(L_vec, 'lightgreen', 'ORCCA', bool_plt_saved)
 
 def run_location_AVS(Y_AVS, bool_plt_saved):
     """
@@ -629,7 +617,7 @@ def run_location_AVS(Y_AVS, bool_plt_saved):
     print '\n' + 'Running location: AVS'
     M = 12  # number of Gaussian Mixture models
     L_vec = main_VB(M, Y_AVS)
-    plot_lower_bound(L_vec, 'dodgerblue', 'AVS', bool_plt_saved)
+    plotting.plot_lower_bound(L_vec, 'dodgerblue', 'AVS', bool_plt_saved)
 
 def run_location_corridor_office(Y_corridor_office, bool_plt_saved):
     """
@@ -640,7 +628,7 @@ def run_location_corridor_office(Y_corridor_office, bool_plt_saved):
     print '\n' + 'Running location: corridor office'
     M = 12  # number of Gaussian Mixture models
     L_vec = main_VB(M, Y_corridor_office)
-    plot_lower_bound(L_vec, 'red', 'corridor_office', bool_plt_saved)
+    plotting.plot_lower_bound(L_vec, 'red', 'corridor_office', bool_plt_saved)
 
 def run_location_corridor_ORCCA(Y_corridor_orcca, bool_plt_saved):
     """
@@ -651,7 +639,17 @@ def run_location_corridor_ORCCA(Y_corridor_orcca, bool_plt_saved):
     print '\n' + 'Running location: corridor ORCCA'
     M = 12  # number of Gaussian Mixture models
     L_vec = main_VB(M, Y_corridor_orcca)
-    plot_lower_bound(L_vec, 'magenta', 'corridor_ORCCA', bool_plt_saved)
+    plotting.plot_lower_bound(L_vec, 'magenta', 'corridor_ORCCA', bool_plt_saved)
+
+
+def run_2D_test():
+    print '\n' + 'Running 2D Gaussian mixture test'
+    N = 500; D = 2
+    data_test = np.random.randn(N, D)
+    data_test[:200,:] += 2*np.ones(D)
+    M = 5
+    L_vec = main_VB(M, data_test)
+    plotting.plot_lower_bound(L_vec, 'blue', '2D data test', False)
 
 
 # ------------------------------------------ MAIN ------------------------------------------#
@@ -660,10 +658,11 @@ if __name__ == "__main__":
     bool_plt_saved = False
     matPath = find_matlab_data_path()
     Y_AVS, Y_ORCCA, Y_corridor_office, Y_corridor_orcca = retrieve_location_data_points(matPath)
-    run_location_ORCCA(Y_ORCCA, bool_plt_saved)
-    run_location_AVS(Y_AVS, bool_plt_saved)
-    run_location_corridor_office(Y_corridor_office, bool_plt_saved)
-    run_location_corridor_ORCCA(Y_corridor_orcca, bool_plt_saved)
+    #run_location_ORCCA(Y_ORCCA, bool_plt_saved)
+    #run_location_AVS(Y_AVS, bool_plt_saved)
+    #run_location_corridor_office(Y_corridor_office, bool_plt_saved)
+    #run_location_corridor_ORCCA(Y_corridor_orcca, bool_plt_saved)
+    run_2D_test()
     plt.show()
 
 
