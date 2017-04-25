@@ -15,7 +15,6 @@ class Location_Model():
         self.v_vec = v_vec
         self.W_vec = W_vec
 
-# model_data_dict = {'AVS': LM_AVS, 'ORCCA': LM_ORCCA, 'corr_office': LM_corridor_office, 'corr_ORCCA': LM_corridor_orcca}
 def compute_classification_result_L_star(Y_l_eval, model_data_dict):
     """
     Computes the classification result L* over all possible l places
@@ -23,7 +22,7 @@ def compute_classification_result_L_star(Y_l_eval, model_data_dict):
     :param: model_data_list: list with {model_tag: Location_Model} for all locations: AVS, ORCCA, corr_office, corr_ORCCA
     :return :  L*
     """
-    L_star_vec = np.zeros(len(model_data_list))
+    L_star_vec = np.zeros(len(model_data_dict))
     l = 0
     for model_tag, model in model_data_dict.items():
         print 'LM = ', model_tag
@@ -83,14 +82,14 @@ def compute_pdf_multivariate_student_T(y, mu, lam, nu):
     :return: St = aa * bb * cc
     """
     D = len(y)
-    aa = gamma(0.5*nu + 0.5*D) / gamma(0.5*nu)
+    a_num = gamma(0.5*nu + 0.5*D)
+    a_den = gamma(0.5*nu)
+    aa = a_num / a_den
     bb = np.sqrt(la.det(lam)) / np.power(nu*np.pi, 0.5*D)
     pow = -0.5*(nu + D)
     cc = np.power(1.0 + (1.0 / nu) * np.dot(y - mu, np.dot(lam, y - mu)), pow)
     St = aa * bb * cc
-    print 'aa = ', aa
-    print 'bb = ', bb
-    print 'cc = ', cc
+    #print 'aa = ', aa
     return St
 
 
@@ -123,10 +122,14 @@ def load_evaluation_sets(folder_name):
 if __name__ == "__main__":
     model_data_list = ['AVS', 'ORCCA', 'corr_office', 'corr_ORCCA']
     LM_dict = {}
-    #file_name_list = ['ORCCA']
     for model_name in model_data_list:
         LM = create_loc_model(model_name)
         LM_dict[model_name] = LM
+
+        def normalize_model_params():
+            LM.alpha_vec *= 1.0 / np.sum(LM.alpha_vec)
+            LM.v_vec *= 1.0 / np.sum(LM.v_vec)
+            LM.B_vec *= 1.0 / np.sum(LM.B_vec)
         def print_location_model():
             print model_name,
             print 'alpha_vec = ', LM.alpha_vec
@@ -134,14 +137,19 @@ if __name__ == "__main__":
             print 'v_vec = ', LM.v_vec
             print 'm_vec = ', LM.m_vec.shape
             print 'W_vec = ', LM.W_vec.shape
+
+        #normalize_model_params()
         #print_location_model()
 
-    folder_name = 'Y_hat_orcca/'
+    #folder_name = 'Y_hat_orcca/'
+    #folder_name = 'Y_hat_avs/'
+    folder_name = 'Y_hat_corridor_orcca/'
+    folder_name = 'Y_hat_corridor_office/'
     Y_l_eval_list = load_evaluation_sets(folder_name)
     print 'Testing data: ', folder_name
     image_idx = 0
     for Y_l_eval in Y_l_eval_list:
         print 'Image number: ', image_idx
-        compute_classification_result_L_star(Y_l_eval, LM_dict)
+        L_star = compute_classification_result_L_star(Y_l_eval, LM_dict)
         image_idx += 1
 
