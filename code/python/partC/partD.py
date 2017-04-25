@@ -98,7 +98,7 @@ if __name__ == "__main__":
     for file_name in file_name_list:
         LM = create_loc_model(file_name)
         LM_dict[file_name] = LM
-        print LM.alpha_vec
+        print file_name, 'alpha = ', LM.alpha_vec
 
 
 

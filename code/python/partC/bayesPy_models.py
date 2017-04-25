@@ -33,7 +33,8 @@ def find_model_data_path():
     path = os.path.dirname(os.path.abspath(filename))
     splitFolderName = 'code/'
     splitPath = path.split(splitFolderName)
-    model_data_path = splitPath[0] + 'models_VB/'
+    model_data_path = splitPath[0] + 'models_VB_M10/'
+    print 'Loading model from: ', model_data_path
     return model_data_path
 
 
@@ -58,18 +59,40 @@ def load_model_data(file_name):
 
 
 # ------------------------------------------ Responsibilities ------------------------------------------#
+def find_model_param(model_data_file, string):
+    var_count = 0
+    var_vec = np.array([])
+    with open(model_data_file) as f:
+        for line in f:
+            if var_count > 1:
+                data = line.split()
+                for d in data:
+                    try:
+                        if d[-1]==']':
+                            d = d[:-2]
+                        var_vec = np.append(var_vec, float(d))
+                    except:
+                        continue
+            if string in line:
+                var_count += 1
+    return var_vec
+
 def show_results_responsibilities():
     dict = {'AVS':'dodgerblue', 'ORCCA':'magenta', 'corr_office':'lightgreen', 'corr_ORCCA':'r'}
     for file_name, color in dict.items():
         model_data_path = find_model_data_path()
         print model_data_path + file_name
-        alpha_vec = parser.get_alpha_from_file(model_data_path + file_name)
+        #alpha_vec = parser.get_alpha_from_file(model_data_path + file_name)
+        alpha_vec = find_model_param(model_data_path + file_name, 'alpha')
         print 'alpha_vec = ', alpha_vec
         alpha0, B0 = get_param_init_values()
         Nk_vec = alpha_vec.copy() - alpha0
         normalized_vec = Nk_vec * 1.0 / np.sum(Nk_vec)
-        plotting.plot_responsibilities(normalized_vec, color, file_name, True)
+        plotting.plot_responsibilities(normalized_vec, color, file_name, False)
     plt.show()
+
+
+
 
 if __name__ == "__main__":
     show_results_log_like()
