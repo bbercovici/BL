@@ -2,7 +2,7 @@
 
 The starting point of the EM algorithm in the context of model learning relates to the use of Gaussian mixtures to reconstruct an intractable probability density distribution. If Gaussian sums are versatile enough to virtually match any other pdf, relating one outcome of the reconstructed pdf to the mixand it came from is one of the key challenges inherent to Gaussian mixtures. 
 
-In this project, they are utilized to relate a spatial location $L$ with higher and lower-level observations $X$ and $Y$ in a probabilistic manner.
+In this project, they are utilized to relate a spatial location $L$ with higher and lower-dimensional observations $X$ and $Y$ in a probabilistic manner. This way, a generating model can be constructed to produce missing observations from high-dimensional observations.
 
 The purpose of this phase is to develop the analytic expressions of the Maximum Likelihood Model Learning that will allow us to determine the optimal values of the model's parameters.
 
@@ -204,6 +204,15 @@ And the mixture weights are still given by
 \boxed{
 \omega_m = \frac{\sum\limits_{i = 1}^{\bar{N}_R}\gamma(Z_{im})}{\bar{N}_R}}
 \end{equation}
+
+The implementation of the EM algorithm on the training data led to the BIC scores shown on Figure \ref{fig:bic}.
+\begin{figure}[tb]
+\centering
+\includegraphics[scale=0.5]{figures_partB/bic}
+\caption{BIC score trend against model complexity }
+\label{fig:bic}
+\end{figure}
+Since the BIC score hasn't quite reached a local minimum yet, it seems that more mixands were actually necessary (as pointed out in the Ramos paper, $M=16$ was a better compromise). For the sake of time, we used a model comprised of $M=10$ mixands. 
 
 
 
