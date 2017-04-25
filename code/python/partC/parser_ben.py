@@ -27,13 +27,13 @@ def get_mu_mu_from_file(file):
             if 'Cov =' in line:
 
                 read_mu_mu = True
-                mu_mat = np.zeros([10 , 8])
-                
+                mu_mat = np.zeros([len(mu_list) , 8])
                 for i in range(len(mu_list)):
                     
                     mu_list[i] = re.sub(']', '', mu_list[i]) 
                     mu_list[i] = re.sub('  ', ' ', mu_list[i]) 
                     mu_list[i] = re.sub('   ', ' ', mu_list[i]) 
+
                     mu_mat[i,:] = np.fromstring(mu_list[i],dtype=float,sep =' ')
                 return mu_mat
                
@@ -120,7 +120,12 @@ def get_lambda_n_from_file(file):
             if 'n =' in line:
                 read_lambda_n = True
                 
-               
+            elif '[' in line and ']' in line and read_lambda_n is True:
+                lambda_n_list += [line.replace(']','').replace('[','')]
+                lambda_n = np.fromstring(lambda_n_list[0],dtype=float,sep =' ')
+                   
+                return lambda_n
+ 
             elif '[' in line and read_lambda_n is True:
 
                 lambda_n_list += [line.replace('[','')]
@@ -128,11 +133,14 @@ def get_lambda_n_from_file(file):
             elif ']' in line and read_lambda_n is True:
                 
                 lambda_n_list += [line.replace(']','')]
-                lambda_n = np.zeros([2,5])
+                lambda_n = []
                 
                 for i in range(len(lambda_n_list)):
-                    lambda_n[i,:] = np.fromstring(lambda_n_list[i],dtype=float,sep =' ')
-                   
+                    lambda_n_t = np.fromstring(lambda_n_list[i],dtype=float,sep =' ')
+                    lambda_n += [lambda_n_t]
+
+                lambda_n = np.hstack(lambda_n)
+
                 return lambda_n.flatten()
 
 def get_lambda_cov_from_file(file,M):
@@ -204,10 +212,18 @@ def get_alpha_from_file(file):
         
         for line in ins:
             
-            if 'alpha =' in line:
+            if 'alpha =' in line and 'Dirichlet' not in line:
                 read_alpha = True
+
                 
-               
+            elif '[' in line and ']' in line and read_alpha is True:
+
+                alpha_list += [line.replace(']','').replace('[','')]
+
+                alpha = np.fromstring(alpha_list[0],dtype=float,sep =' ')
+                   
+                return alpha.flatten()
+
             elif '[' in line and read_alpha is True:
 
                 alpha_list += [line.replace('[','')]
@@ -215,11 +231,12 @@ def get_alpha_from_file(file):
             elif ']' in line and read_alpha is True:
                 
                 alpha_list += [line.replace(']','')]
-                alpha = np.zeros([2,5])
+                alpha = []
 
                 for i in range(len(alpha_list)):
-                    alpha[i,:] = np.fromstring(alpha_list[i],dtype=float,sep =' ')
-                   
+                    alpha += [np.fromstring(alpha_list[i],dtype=float,sep =' ')]
+                alpha = np.hstack(alpha)
+
                 return alpha.flatten()
            
 
