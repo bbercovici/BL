@@ -1,7 +1,9 @@
+import os, inspect
 import numpy as np
 from numpy import linalg as la
 from scipy.special import gamma
 import bayesPy_models as models
+from scipy.io import loadmat
 
 
 class Location_Model():
@@ -18,15 +20,18 @@ def compute_classification_result_L_star(Y_l_eval, model_data_dict):
     """
     Computes the classification result L* over all possible l places
     :param: Y_l_eval [P x D] where P = 3072
-    :param: model_data_dict: dictionary with {model_tag: Location_Model} for all locations: AVS, ORCCA, corr_office, corr_ORCCA
+    :param: model_data_list: list with {model_tag: Location_Model} for all locations: AVS, ORCCA, corr_office, corr_ORCCA
     :return :  L*
     """
-    L_star_vec = np.zeros(len(model_data_dict))
+    L_star_vec = np.zeros(len(model_data_list))
     l = 0
-    for name, model in model_data_dict.item():
+    for model_tag, model in model_data_dict.items():
+        print 'LM = ', model_tag
         L_star_vec[l] = compute_model_log_likelihood(Y_l_eval, model)
         l += 1
     L_star = np.argmax(L_star_vec)
+    print 'L_star_vec = ', L_star_vec
+    print 'L_star = ', L_star
     return L_star
 
 
@@ -83,7 +88,11 @@ def compute_pdf_multivariate_student_T(y, mu, lam, nu):
     pow = -0.5*(nu + D)
     cc = np.power(1.0 + (1.0 / nu) * np.dot(y - mu, np.dot(lam, y - mu)), pow)
     St = aa * bb * cc
+    print 'aa = ', aa
+    print 'bb = ', bb
+    print 'cc = ', cc
     return St
+
 
 
 def create_loc_model(model_tag):
@@ -91,14 +100,48 @@ def create_loc_model(model_tag):
     LM = Location_Model(model_tag, alpha_vec, B_vec, m_vec, v_vec, W_vec)
     return LM
 
+
+def find_matlab_data_path():
+    """
+    Defines the absolute path of the matlab data according to its relative path to this file
+    """
+    filename = inspect.getframeinfo(inspect.currentframe()).filename
+    path = os.path.dirname(os.path.abspath(filename))
+    splitFolderName = 'Bayes/'
+    splitPath = path.split(splitFolderName)
+    matPath = splitPath[0]
+    return matPath
+
+def load_evaluation_sets(folder_name):
+    matPath = find_matlab_data_path()
+    mat_folder_name = matPath + folder_name
+    mats = []
+    for file in os.listdir(mat_folder_name):
+        mats.append(loadmat(mat_folder_name + file)['y'].T)
+    return mats
 # ------------------------------------------ MAIN ------------------------------------------#
 if __name__ == "__main__":
-    file_name_list = ['AVS', 'ORCCA', 'corr_office', 'corr_ORCCA']
+    model_data_list = ['AVS', 'ORCCA', 'corr_office', 'corr_ORCCA']
     LM_dict = {}
-    for file_name in file_name_list:
-        LM = create_loc_model(file_name)
-        LM_dict[file_name] = LM
-        print file_name, 'alpha = ', LM.alpha_vec
+    #file_name_list = ['ORCCA']
+    for model_name in model_data_list:
+        LM = create_loc_model(model_name)
+        LM_dict[model_name] = LM
+        def print_location_model():
+            print model_name,
+            print 'alpha_vec = ', LM.alpha_vec
+            print 'B_vec = ', LM.B_vec
+            print 'v_vec = ', LM.v_vec
+            print 'm_vec = ', LM.m_vec.shape
+            print 'W_vec = ', LM.W_vec.shape
+        #print_location_model()
 
-
+    folder_name = 'Y_hat_orcca/'
+    Y_l_eval_list = load_evaluation_sets(folder_name)
+    print 'Testing data: ', folder_name
+    image_idx = 0
+    for Y_l_eval in Y_l_eval_list:
+        print 'Image number: ', image_idx
+        compute_classification_result_L_star(Y_l_eval, LM_dict)
+        image_idx += 1
 

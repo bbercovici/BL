@@ -33,14 +33,14 @@ def find_model_data_path():
     path = os.path.dirname(os.path.abspath(filename))
     splitFolderName = 'code/'
     splitPath = path.split(splitFolderName)
-    model_data_path = splitPath[0] + 'models_VB_M10/'
-    print 'Loading model from: ', model_data_path
+    model_data_path = splitPath[0] + 'models_VB/'
+    #print 'Loading model from: ', model_data_path
     return model_data_path
 
 
 def get_param_init_values():
     alpha0 = 0.01
-    B0 = 1.0 / 0.01
+    B0 = 1.0 / 100.0
     return alpha0, B0
 
 def load_model_data(file_name):
@@ -81,9 +81,9 @@ def show_results_responsibilities():
     dict = {'AVS':'dodgerblue', 'ORCCA':'magenta', 'corr_office':'lightgreen', 'corr_ORCCA':'r'}
     for file_name, color in dict.items():
         model_data_path = find_model_data_path()
-        print model_data_path + file_name
-        #alpha_vec = parser.get_alpha_from_file(model_data_path + file_name)
-        alpha_vec = find_model_param(model_data_path + file_name, 'alpha')
+        #print model_data_path + file_name
+        alpha_vec = parser.get_alpha_from_file(model_data_path + file_name)
+        #alpha_vec = find_model_param(model_data_path + file_name, 'alpha')
         print 'alpha_vec = ', alpha_vec
         alpha0, B0 = get_param_init_values()
         Nk_vec = alpha_vec.copy() - alpha0
@@ -95,5 +95,5 @@ def show_results_responsibilities():
 
 
 if __name__ == "__main__":
-    show_results_log_like()
-    #show_results_responsibilities()
+    #show_results_log_like()
+    show_results_responsibilities()
