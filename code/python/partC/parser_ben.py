@@ -216,7 +216,7 @@ def get_alpha_from_file(file):
                 
                 alpha_list += [line.replace(']','')]
                 alpha = np.zeros([2,5])
-                
+
                 for i in range(len(alpha_list)):
                     alpha[i,:] = np.fromstring(alpha_list[i],dtype=float,sep =' ')
                    

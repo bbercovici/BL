@@ -1,6 +1,7 @@
 import numpy as np
 from numpy import linalg as la
 from scipy.special import gamma
+import bayesPy_models as models
 
 
 class Location_Model():
@@ -83,4 +84,21 @@ def compute_pdf_multivariate_student_T(y, mu, lam, nu):
     cc = np.power(1.0 + (1.0 / nu) * np.dot(y - mu, np.dot(lam, y - mu)), pow)
     St = aa * bb * cc
     return St
+
+
+def create_loc_model(model_tag):
+    alpha_vec, B_vec, m_vec, v_vec, W_vec = models.load_model_data(model_tag)
+    LM = Location_Model(model_tag, alpha_vec, B_vec, m_vec, v_vec, W_vec)
+    return LM
+
+# ------------------------------------------ MAIN ------------------------------------------#
+if __name__ == "__main__":
+    file_name_list = ['AVS', 'ORCCA', 'corr_office', 'corr_ORCCA']
+    LM_dict = {}
+    for file_name in file_name_list:
+        LM = create_loc_model(file_name)
+        LM_dict[file_name] = LM
+        print LM.alpha_vec
+
+
 
