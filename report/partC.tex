@@ -1,0 +1,219 @@
+\section{Variational Bayes Learning of GM models}
+\EditMC{
+\begin{itemize}
+ \item \textbf{Report the final number of non-zero mixture components determined by VB for each location l, 
+ and the number of VB iterations required until convergence in each case.}
+ \item  \textbf{Be sure to describe how you initialized the VB iterations and selected the upper bound Ml for each location.}
+\end{itemize}
+}
+In this section, the Variational Bayes (VB) iterative process is applied in order to infer %learn 
+the Gaussian mixture models of L locations separately. 
+The locations considered are four, having been labeled as: 
+AVS laboratory, ORCCA laboratory, corridor office and corridor ORCCA.
+
+For the data set ($\bm Y$) of each location we construct a Gaussian mixture model 
+and assume that the parameters ($\bm\pi$, $\bm\mu$, $\bm\Lambda$), the cluster assignments ($\bm Z$) 
+and the true number of clusters are unknown.
+\begin{figure}[!h]
+	\centerline{ \includegraphics[scale=0.6]{FiguresC/model_plate}}
+	\caption{
+	Bayes net for fully Bayesian GM modeling of location-dependent essential features $y_i^{l}$. 
+	}
+ 	\label{fig:model_plate}
+\end{figure}
+The cluster assignments are categorical variables, and the cluster probabilities are given a Dirichlet prior distribution, as shown Fig.~\ref{fig:model_plate} .
+The unknown cluster means and precision matrices are given Gaussian and Wishart prior distributions respectively.
+
+
+%For each location, an upper bound on the number of mixture components is assumed. 
+Each location model uses a maximum number M clusters 
+but the effective number of clusters will be determined automatically:
+the VB algorithm knocks out the mixture components of the model 
+that do not contribute on explaining the data, by 
+updates of the responsibilities and the hyper-parameter values, which are coupled.
+
+The prior value of the hyper-parameters shown in the model plate of Fig.~\ref{fig:model_plate} 
+has been set as follows:
+\begin{subequations}
+\begin{align}
+	\bm{m}_0 &= \bm{0}_{D\times 1} \\
+	B_0 &= 0.01 \\
+	v_0 &= D \\
+	W_0 &= 0.125 \bm{I}_{D\times D}
+\end{align}
+\end{subequations}
+where $D=8$ is the dimensionality of $y_i^{l}$.
+It is important to mention that before running the VB algorithm, 
+the symmetry in the model is broken by a random initialization of the cluster assignments. 
+Without the random initialization, the clusters would not be separated. 
+The VB algorithm updates the variables in turns and is run for 200 iterations or until convergence.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Results for M = 10 clusters}
+With an initial assumption of a  maximum of $M=10$ clusters in all the location models, 
+Fig.~\ref{fig:Responsibilities} shows the normalized responsibilities of each mixture component k. 
+%In turn, Fig.~\ref{fig:LowerBound} shows the evolution of the lower bound evaluation until convergence.
+From these results it is observed that: 
+\begin{itemize}
+	\item{AVS laboratory (M = 10): }
+	All the components seem to somehow contribute to explaining the observed data set . 
+	Converged at iteration 23.
+	\item{ORCCA laboratory (M = 10): }
+	$6$ components are reasonably relevant to explain the observed data. 
+	Converged at iteration 28.
+	\item{Corridor office (M = 10): }
+	About $8\sim9$ components contribute to explaining the observed data set.
+	Converged at iteration 26.
+	\item{Corridor ORCCA (M = 10): }
+	All the components seem to somehow contribute to explaining the observed data set. 
+	Converged at iteration 38.
+\end{itemize}
+\begin{figure}[!h]
+	\centering
+	\subfigure[$N_k$ for location: AVS laboratory.]
+	{\label{fig:Nk_AVS}
+	\includegraphics[]{FiguresC_M10/Nk_norm_AVS}} 
+	\subfigure[$N_k$ for location: ORCCA laboratory.]
+	{\label{fig:Nk_ORCCA} 
+	\includegraphics[]{FiguresC_M10/Nk_norm_ORCCA}} 
+	\subfigure[$N_k$ for location: corridor office.]
+	{\label{fig:Nk_corr_office}
+	\includegraphics[]{FiguresC_M10/Nk_norm_corr_office}} 
+	\subfigure[$N_k$ for location: corridor ORCCA.]
+	{\label{fig:Nk_corr_ORCCA}
+	\includegraphics[]{FiguresC_M10/Nk_norm_corr_ORCCA}} 
+	%
+	\caption{Normalized responsibilities $N_k$ of each mixand $k$ in the Gaussian Mixture model for each location.}
+	\label{fig:Responsibilities}
+\end{figure}
+%\begin{figure}[!h]
+%	\centering
+%	\subfigure[$L(q)$ for location: AVS laboratory.]
+%	{\label{fig:L_AVS}
+%	\includegraphics[scale=0.95]{FiguresC/Lbound_AVS}} 
+%	%
+%	\subfigure[$L(q)$ for location: ORCCA laboratory.]
+%	{\label{fig:L_ORCCA} 
+%	%
+%	\includegraphics[scale=0.95]{FiguresC/Lbound_ORCCA}} 
+%	\subfigure[$L(q)$ for location: corridor office.]
+%	{\label{fig:L_corr_office}
+%	\includegraphics[scale=0.95]{FiguresC/Lbound_corridorOffice}} 
+%	%
+%	\subfigure[$L(q)$ for location: corridor ORCCA.]
+%	{\label{fig:L_corr_ORCCA}
+%	\includegraphics[scale=0.95]{FiguresC/Lbound_corridorORCCA}} 
+%	%
+%	\caption{Lower bound convergence for each location.}
+%	\label{fig:LowerBound}
+%\end{figure}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\break
+\newpage
+\subsection{Model Selection}
+The scattering of the mixands' responsibilities in the four plots of Fig.~\ref{fig:Responsibilities} indicates that 
+the number of clusters $M=10$ might not be the best choice, specially for the locations 
+AVS laboratory and ORCCA corridor. In these two models, none of the responsibilities is actually knocked out completely. 
+In the light of these results,   model selection is performed next for each location 
+through the log likelihood score:% $\mathcal{L}(q)$ 
+\begin{equation}
+	\mathcal{L}(q) \approx \log P(y_{1:N} \vline M_i)
+\end{equation}
+
+\begin{figure}[!h]
+	\centering
+	\subfigure[Model performance for location: AVS laboratory.]
+	{\label{fig:AVS_BIC}
+	\includegraphics[scale=0.9]{FiguresC/AVS_BIC}} 
+	%
+	\subfigure[Model performance for location: ORCCA laboratory.]
+	{\label{fig:L_ORCCA} 
+	%
+	\includegraphics[scale=0.9]{FiguresC/ORCCA_BIC}} 
+	\subfigure[Model performance for location: corridor office.]
+	{\label{fig:corr_office_BIC}
+	\includegraphics[scale=0.9]{FiguresC/corr_office_BIC}} 
+	%
+	\subfigure[Model performance for location: corridor ORCCA.]
+	{\label{fig:corr_ORCCA_BIC}
+	\includegraphics[scale=0.9]{FiguresC/corr_ORCCA_BIC}} 
+	%
+	\caption{Model selection for each location.}
+	\label{fig:ModelSelection}
+\end{figure}
+
+For every location, the log likelihood is computed considering 
+$M = [2, 3, 4, 5, 6, 7, 8]$. The model with the highest score is the best fit for the given data. 
+A graphical comparison of the different cluster models in each location is provided in Fig.~\ref{fig:ModelSelection}. 
+In accordance with these results, %of the plots in Fig.~\ref{fig:ModelSelection}, 
+a total number of $M = 6$ clusters is picked for the AVS laboratory model, 
+$M = 4$ is chosen for the ORCCA laboratory model, 
+$M = 4$ for the corridor office model and 
+$M = 4$ for the corridor ORCCA model.
+
+%Fig.~\ref{fig:Responsibilities} shows the normalized responsibilities of each mixture component k. In turn, 
+Fig.~\ref{fig:LowerBound} shows the evolution of the lower bound evaluation until convergence for the 
+chosen model in each location. 
+From these results it is observed that: 
+\begin{itemize}
+	\item{AVS laboratory (M=6): }
+	Converged at iteration 18.
+	\item{ORCCA laboratory(M=4): }
+	Converged at iteration 26.
+	\item{Corridor office(M=4): }
+	Converged at iteration 31.
+	\item{Corridor ORCCA(M=4): }
+	Converged at iteration 26.
+\end{itemize}
+Of course now, after model selection, all the mixture components in the chosen model for each location 
+will have non-zero responsibility. 
+
+%\begin{figure}[!h]
+%	\centering
+%	\subfigure[$N_k$ for location: AVS laboratory.]
+%	{\label{fig:Nk_AVS}
+%	\includegraphics[]{FiguresC/Nk_norm_AVS}} 
+%	\subfigure[$N_k$ for location: ORCCA laboratory.]
+%	{\label{fig:Nk_ORCCA} 
+%	\includegraphics[]{FiguresC/Nk_norm_ORCCA}} 
+%	\subfigure[$N_k$ for location: corridor office.]
+%	{\label{fig:Nk_corr_office}
+%	\includegraphics[]{FiguresC/Nk_norm_corr_office}} 
+%	\subfigure[$N_k$ for location: corridor ORCCA.]
+%	{\label{fig:Nk_corr_ORCCA}
+%	\includegraphics[]{FiguresC/Nk_norm_corr_ORCCA}} 
+%	%
+%	\caption{Normalized responsibilities $N_k$ of each mixand $k$ in the Gaussian Mixture model for each location.}
+%	\label{fig:Responsibilities}
+%\end{figure}
+\begin{figure}[!h]
+	\centering
+	\subfigure[$L(q)$ for location: AVS laboratory.]
+	{\label{fig:L_AVS}
+	\includegraphics[scale=0.95]{FiguresC/Lbound_AVS}} 
+	%
+	\subfigure[$L(q)$ for location: ORCCA laboratory.]
+	{\label{fig:L_ORCCA} 
+	%
+	\includegraphics[scale=0.95]{FiguresC/Lbound_ORCCA}} 
+	\subfigure[$L(q)$ for location: corridor office.]
+	{\label{fig:L_corr_office}
+	\includegraphics[scale=0.95]{FiguresC/Lbound_corridorOffice}} 
+	%
+	\subfigure[$L(q)$ for location: corridor ORCCA.]
+	{\label{fig:L_corr_ORCCA}
+	\includegraphics[scale=0.95]{FiguresC/Lbound_corridorORCCA}} 
+	%
+	\caption{Lower bound convergence for each location.}
+	\label{fig:LowerBound}
+\end{figure}
+
+
+
+
+
+
+
+

@@ -1,6 +1,16 @@
 \documentclass{report}
-\input{preamble.tex}
+%\input{preamble.tex}
+
+\usepackage{AVS}
+\usepackage{amsmath}
+\usepackage{subfigure}
+\usepackage[
+		a4paper, 
+            	left=3.17cm, right=3.17cm, top=2.54cm, bottom=2.54cm
+            	]{geometry}
 \usepackage{array}
+\let\bm\boldsymbol
+
 \title{ASEN 6519 - Algorithms for Aerospace Autonomy\\ Projet Part 2 Report}
 \author{Mar Cols, Benjamin Bercovici\\ (ASEN PhD Students)\\ \href{mailto:benjamin.bercovici@colorado.edu}{\nolinkurl{benjamin.bercovici@colorado.edu}}}
 
@@ -20,16 +30,15 @@
 \makeatletter
 \renewcommand{\thesection}{\@arabic\c@section}
 \makeatother
-\maketitle
+%\maketitle
 \tableofcontents
 \newpage
 \large
 
 %\input{partA}
 
-\input{partB}%Ben
+%\input{partB}%Ben
 
-%\input{partC}%Mar
-
-%\input{partD}
+\input{partC}%Mar
+%\input{partD}%Mar
 \end{document}
