@@ -1,10 +1,90 @@
+\newpage\newpage
 \section{Place Recognition and Evaluation}
+%\begin{itemize}
+% \item \textbf{Compare the classification result L* with the true location for every image patch.}
+% \item  \textbf{Count the number of times L* predicts the location correctly for all test images at each location.}
+% \item  \textbf{Count the number of times L* predicts the location incorrectly for all test images at each location.}
+% \item  \textbf{Report results as a confusion matrix.}
+%\end{itemize}
+The evaluation data sets for the four different locations are as follows:
 \begin{itemize}
- \item \textbf{Compare the classification result L* with the true location for every image patch.}
- \item  \textbf{Count the number of times L* predicts the location correctly for all test images at each location.}
- \item  \textbf{Count the number of times L* predicts the location incorrectly for all test images at each location.}
- \item  \textbf{Report results as a confusion matrix.}
+	\item{AVS laboratory:}
+	$I = 19$ images.
+	\item{ORCCA laboratory: }
+	$I = 5$ images.
+	\item{Corridor office: }
+	$I = 10$ images.
+	\item{Corridor ORCCA: }
+	$I = 10$ images.
 \end{itemize}
+
+Where each image $I$ has associated a feature vector list $\bm{Y}_l \in [3072 \times D]$, 
+and again $D=8$ is the dimensionality of the observed feature vector $\bm{y}_{l,r,p}$. 
+With the evaluation data sets for each location readily available, 
+the next step is to load the models chosen in part C 
+($L_1$: AVS model with $M_1 = 6$ clusters,  
+$L_2$: ORCCA model with $M_2 = 4$ clusters, 
+$L_3$: corridor office model with $M_3 = 4$ clusters  and 
+$L_4$: corridor ORCCA with $M_4 = 4$ clusters as well). 
+Each loaded model $L$ is conformed by the vectors of the posterior hyper-parameter values 
+corresponding to each $k \in M_i$.
+
+For all the essential component feature $\bm{y}_{l,r,p}$ that conform one of the I images, 
+%the log likelihood  $\log P( {\bm{y}_{l,r,p} \vline L}, \bm{Y}_l)$.
+the sum of log likelihoods is computed assuming a given model L:  
+\begin{equation}
+{\sum\limits_{p=1}^{3072} \log P( {\bm{y}_{l,r,p} \vline L}, \bm{Y}_l)}
+\end{equation}
+If we repeat this computation for every location model $L$, 
+we can see which of the models best explains the observed data $\bm{Y}_l$: 
+\begin{equation}
+L* = argmax_{L \in \{1,2,3,4\}} {\sum\limits_{p=1}^{3072} \log P( {\bm{y}_{l,r,p} \vline L}, \bm{Y}_l)}
+\end{equation}
+
+The classification results for each image I in every location are presented next, 
+using the following nomenclature:
+$$LM_{dictionary} =  [\textrm{corridor ORCCA, ORCCA, corridor office, AVS}] = [0, 1, 2, 3]$$
+%where $LM$ refers to the dictionary of models. 
+%And the results are as follows:
+\begin{itemize}
+	\item{AVS laboratory images classification results ($I = 19$ images): } \newline
+	[ 2,  2,  3,  3,  3,  3,  3, 3,  2,  2,  3,  3,  2,  3,  0,  2,  3, 1, 2 ] \newline
+	Occurrences: \{corridor ORCCA: 1, ORCCA: 1, corridor office: 7, \EditMC{AVS: 10}\}\newline
+	Correct predictions: 10 / 19 $(\approx 52.6\%)$.\newline
+	Incorrect predictions: 9 / 19.
+	%Occurrences (entry: counts) :  \{0.0: 1, 1.0: 1, 2.0: 7, 3.0: 10\}
+	\item{ORCCA laboratory images classification results: ($I = 5$ images.)}\newline
+	[ 1,  1,  3,  1,  3 ] \newline
+	Occurrences:  \{\EditMC{ORCCA: 3},  AVS: 2\} \newline
+	Correct predictions: 3 / 5 $(\equiv 60.0\%)$.\newline
+	Incorrect predictions: 2 / 5.
+	%Occurrences:  {1.0: 3, 3.0: 2}
+	\item{Corridor office images classification results ($I = 10$ images): }\newline
+	[ 1,  3,  1,  2,  1,  1,  1,  2,  1,  2 ]\newline
+	Occurrences:  \{\EditHPS{ORCCA: 6}, corridor office: 3, AVS: 1\} \newline
+	Correct predictions: 3 / 10 $(\equiv 30.0\%)$.\newline
+	Incorrect predictions: 7 / 10.
+	%Occurrences:  {1.0: 6, 2.0: 3, 3.0: 1}
+	\item{Corridor ORCCA images classification results ($I = 10$ images):}\newline
+	[ 3,  3,  2,  1,  2,  3,  3,  3,  1,  1 ]\newline
+	Occurrences:  \{ORCCA: 3, corridor office: 2,  \EditHPS{AVS: 5}\} \newline
+	Correct predictions: 0 / 10.\newline
+	Incorrect predictions: 10 / 10.
+\end{itemize}
+
+The reported results show that place recognition is successfully achieved for the 
+AVS laboratory and for the ORCCA laboratory. 
+Nevertheless, an incorrect location is inferred for both corridors. 
+One reason that could explain this fact is the lack of distinctive features in any kind of corridor in general. 
+In the case of the office corridor, the correct location is predicted a few times but not generally. 
+In contrast, for the corridor ORCCA, the right location is never inferred. Further, the very few occurrences 
+for which the corridor ORCCA is chosen incorrectly in the images from other locations 
+(i.e. index 0 in the classification results) indicates that there might be 
+something anomalous in the learnt model for the corridor ORCCA itself. It seems to be conformed by a very particular mixture of 
+components with responsibilities that are not reflective of almost any of the training images, not even the ones 
+from the true corridor ORCCA location. 
+
+
 
 
 

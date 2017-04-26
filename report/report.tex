@@ -1,6 +1,5 @@
-\documentclass{report}
+\documentclass[titlepage]{report}
 %\input{preamble.tex}
-
 \usepackage{AVS}
 \usepackage{amsmath}
 \usepackage{subfigure}
@@ -25,20 +24,17 @@
 \newcolumntype{"}{@{\hskip\tabcolsep\vrule width 1pt\hskip\tabcolsep}}
 \makeatother
 
-
 \begin{document}
 \makeatletter
 \renewcommand{\thesection}{\@arabic\c@section}
 \makeatother
 %\maketitle
-\tableofcontents
-\newpage
-\large
-
+%\tableofcontents
+%\newpage
+%\large
+%\newpage
 %\input{partA}
-
-%\input{partB}%Ben
-
+\input{partB}%Ben
 \input{partC}%Mar
-%\input{partD}%Mar
+\input{partD}%Mar
 \end{document}
